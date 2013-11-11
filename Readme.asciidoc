@@ -1,0 +1,10 @@
+Test Environment for the `Academia` Example
+===========================================
+
+This is a test environment to demonstrate a system that combines
+"intelligent" agents using reinforcement learning with Poem/ALisp and
+"dumb" agents implemented in Lua.  The Lua agents can receive updates
+of their behavior from the intelligent ones via the Hexameter
+protocol.  Therefore we call the Poem agents _teachers_, the Lua
+agents _students_.
+
