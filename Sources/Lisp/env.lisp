@@ -4,7 +4,7 @@
 ;;; waste item, collect the waste and then drop it in a target area.  Modeled loosely after the
 ;;; td-taxi world.
 
-(defstruct (waste-state (:conc-name #:ws-))
+(defstruct (academia-state (:conc-name #:ac-))
   robot-loc
   (waste-status :at-source) ; :on-robot :at-source :at-dest
   waste-source
@@ -12,35 +12,35 @@
   fuel
   env)
 
-(defmethod clone ((state waste-state))
-  (make-waste-state
-   :robot-loc (ws-robot-loc state)
-   :waste-status (ws-waste-status state)
-   :waste-source (ws-waste-source state)
-   :waste-target (ws-waste-target state)
-   :fuel (ws-fuel state)
-   :env (ws-env state)))
+(defmethod clone ((state academia-state))
+  (make-academia-state
+   :robot-loc (ac-robot-loc state)
+   :waste-status (ac-waste-status state)
+   :waste-source (ac-waste-source state)
+   :waste-target (ac-waste-target state)
+   :fuel (ac-fuel state)
+   :env (ac-env state)))
 
-(defmethod same ((s1 waste-state) (s2 waste-state))
-  (and (equal (ws-robot-loc s1) (ws-robot-loc s2))
-       (eql (ws-waste-status s1) (ws-waste-status s2))
-       (equal (ws-waste-source s1) (ws-waste-source s2))
-       (equal (ws-waste-target s1) (ws-waste-target s2))
-       (= (ws-fuel s1) (ws-fuel s2))
-       (eql (ws-env s1) (ws-env s2))))
+(defmethod same ((s1 academia-state) (s2 academia-state))
+  (and (equal (ac-robot-loc s1) (ac-robot-loc s2))
+       (eql (ac-waste-status s1) (ac-waste-status s2))
+       (equal (ac-waste-source s1) (ac-waste-source s2))
+       (equal (ac-waste-target s1) (ac-waste-target s2))
+       (= (ac-fuel s1) (ac-fuel s2))
+       (eql (ac-env s1) (ac-env s2))))
 
-(defmethod canonicalize ((state waste-state))
-  (list 'robot-loc (ws-robot-loc state)
-        'waste-status (ws-waste-status state)
-        'waste-source (ws-waste-source state)
-        'waste-target (ws-waste-target state)
-        'fuel (ws-fuel state)))
+(defmethod canonicalize ((state academia-state))
+  (list 'robot-loc (ac-robot-loc state)
+        'waste-status (ac-waste-status state)
+        'waste-source (ac-waste-source state)
+        'waste-target (ac-waste-target state)
+        'fuel (ac-fuel state)))
 
 (defvar *print-graphically* nil)
-(defmethod print-object ((state waste-state) stream)
+(defmethod print-object ((state academia-state) stream)
   (if *print-graphically*
       (loop
-        with env = (ws-env state)
+        with env = (ac-env state)
         with d = (dimensions env)
         for i from -1 to (first d)
         do (terpri stream)
@@ -54,17 +54,17 @@
                        (format stream "~AX" (mod i 10)))
                       ((eq (loc-value env (list i j)) 'wall) 
                        (format stream "XX"))
-                      ((equal (ws-robot-loc state) (list i j))
-                       (if (eq (ws-waste-status state) :on-robot)
+                      ((equal (ac-robot-loc state) (list i j))
+                       (if (eq (ac-waste-status state) :on-robot)
                            (format stream "RR")
                            (format stream "rr")))
-                      ((equal (ws-waste-source state) (list i j))
-                       (if (eq (ws-waste-status state) :at-source)
+                      ((equal (ac-waste-source state) (list i j))
+                       (if (eq (ac-waste-status state) :at-source)
                            (format stream "WW")
                            (format stream "ww")))
                       (t (format stream "  "))))
         finally (format stream "~&Waste Targets: ~A  Fuel: ~A"
-                        (waste-targets env)  (ws-fuel state)))
+                        (waste-targets env)  (ac-fuel state)))
       (call-next-method)))
 
 
@@ -128,12 +128,12 @@
   "is-terminal-state WASTE-ENV STATE
 A state is terminal if we have unloaded the waste at one of the waste targets or if the robot
 has run out of fuel."
-  (or (eq (ws-waste-status state) :at-dest)
+  (or (eq (ac-waste-status state) :at-dest)
       #+ (or)
-      (zerop (ws-fuel state))))
+      (zerop (ac-fuel state))))
 
 (defun move-would-hit-wall-p (env state action)
-  (destructuring-bind (robot-x robot-y) (ws-robot-loc state)
+  (destructuring-bind (robot-x robot-y) (ac-robot-loc state)
     (case action
       ((n) (= robot-x 0))
       ((w) (= robot-y 0))
@@ -145,13 +145,13 @@ has run out of fuel."
              (= (1+ robot-y) dim-y))))))
 
 (defun reward (env state action new-state)
-  (let* ((waste-at-dest? (eq (ws-waste-status new-state) :at-dest))
+  (let* ((waste-at-dest? (eq (ac-waste-status new-state) :at-dest))
          (waste-reward (if waste-at-dest?
                            (waste-delivery-reward env)
                            0.0))
          (hit-wall? (move-would-hit-wall-p env state action))
          (wall-cost (if hit-wall? (wall-collision-cost env) 0.0))
-         (no-fuel? (zerop (ws-fuel state)))
+         (no-fuel? (zerop (ac-fuel state)))
          (no-fuel-cost (if no-fuel? (no-fuel-cost env) 0.0)))
     (if (is-terminal-state env state)
         0
@@ -167,8 +167,8 @@ has run out of fuel."
 
 (defun compute-next-loc (env state action)
   (if (and (move-action-p action)
-           (> (ws-fuel state) 0))
-      (let* ((loc (ws-robot-loc state))
+           (> (ac-fuel state) 0))
+      (let* ((loc (ac-robot-loc state))
              (succ-prob (move-success-prob env))
              (slip-prob (/ (- 1.0 succ-prob) 2.0))
              (forward-loc (result loc action))
@@ -180,18 +180,18 @@ has run out of fuel."
              (stay-prob (- 1.0 (+ forward-prob left-prob right-prob))))
         (sample-multinomial (list forward-loc right-loc left-loc loc)
                             forward-prob right-prob left-prob stay-prob))
-      (ws-robot-loc state)))
+      (ac-robot-loc state)))
 
 (defun compute-waste-status (env state action)
-  (let ((waste-status (ws-waste-status state)))
+  (let ((waste-status (ac-waste-status state)))
     (case action
       ((pickup)
-       (if (equal (ws-robot-loc state) (ws-waste-source state))
+       (if (equal (ac-robot-loc state) (ac-waste-source state))
            :on-robot
            waste-status))
       ((drop)
-       (if (and (eq (ws-waste-status state) :on-robot)
-                (member (ws-robot-loc state) (waste-targets env) :test 'equal))
+       (if (and (eq (ac-waste-status state) :on-robot)
+                (member (ac-robot-loc state) (waste-targets env) :test 'equal))
            :at-dest
            waste-status))
       (otherwise
@@ -199,15 +199,15 @@ has run out of fuel."
 
 (defun compute-fuel (env state action)
   (cond ((move-action-p action)
-         (let ((fuel (ws-fuel state))
+         (let ((fuel (ac-fuel state))
                (fuel-prob (fuel-decrease-prob env)))
            (sample-multinomial (list (max 0.0 (- fuel (fuel-amount-per-step env))) fuel)
                                fuel-prob (- 1.0 fuel-prob))))
         ((eq action 'refuel)
          (let ((refuel-prob (refuel-success-prob env)))
-           (sample-multinomial (list (ws-fuel state) (init-fuel env))
+           (sample-multinomial (list (ac-fuel state) (init-fuel env))
                                (- 1.0 refuel-prob) refuel-prob)))
-        (t (ws-fuel state))))
+        (t (ac-fuel state))))
 
 (defmethod sample-next ((env <waste-env>) state action)
   (assert (member action (avail-actions env state)) (action)
@@ -215,13 +215,13 @@ has run out of fuel."
   (let* ((next-loc (compute-next-loc env state action))
          (waste-status (compute-waste-status env state action))
          (fuel (compute-fuel env state action))
-         (new-state (make-waste-state
+         (new-state (make-academia-state
                      :robot-loc next-loc
                      :waste-status waste-status
-                     :waste-source (ws-waste-source state)
-                     :waste-target (ws-waste-target state)
+                     :waste-source (ac-waste-source state)
+                     :waste-target (ac-waste-target state)
                      :fuel fuel
-                     :env (ws-env state))))
+                     :env (ac-env state))))
     (values new-state (reward env state action new-state))))
 
 (defvar *max-initial-waste-source-tries* 100)
@@ -234,7 +234,7 @@ has run out of fuel."
   (error "Could not find an initial position in ~A." env))
 
 (defmethod sample-init ((env <waste-env>))
-  (make-waste-state
+  (make-academia-state
    :robot-loc (funcall (unif-grid-dist-sampler env))
    :waste-status :at-source
    :waste-source (compute-intial-waste-source env)

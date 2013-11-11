@@ -2,17 +2,17 @@
 
 ;;; Accessors for the current state.
 
-(def-env-accessor robot-loc ws-robot-loc
+(def-env-accessor robot-loc ac-robot-loc
     "The current location of the robot.")
-(def-env-accessor waste-status ws-waste-status
+(def-env-accessor waste-status ac-waste-status
     "The current status of the waste: either 'at-source, 'on-robot or 'at-dest.")
-(def-env-accessor waste-source ws-waste-source
+(def-env-accessor waste-source ac-waste-source
     "The source of the waste for the current state (this will never change during an episode).")
-(def-env-accessor waste-target ws-waste-target
+(def-env-accessor waste-target ac-waste-target
     "The target for the waste in the current state (will never change during an episode).")
-(def-env-accessor fuel ws-fuel
+(def-env-accessor fuel ac-fuel
     "The amount of fuel the robot currently has.")
-(def-env-accessor env ws-env
+(def-env-accessor env ac-env
     "The environemnt for a state")
 
 (defun* nav (loc)

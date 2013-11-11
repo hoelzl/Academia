@@ -45,13 +45,13 @@
 
    ;; States (Not sure whether this should really be exposed, but we need the functions
    ;; to define state accessors)
-   #:waste-state
-   #:ws-robot-loc
-   #:ws-waste-status
-   #:ws-waste-source
-   #:ws-waste-target
-   #:ws-fuel
-   #:ws-env
+   #:academia-state
+   #:ac-robot-loc
+   #:ac-waste-status
+   #:ac-waste-source
+   #:ac-waste-target
+   #:ac-fuel
+   #:ac-env
 
    ;; The waste status 
    #:on-robot
