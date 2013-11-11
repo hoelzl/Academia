@@ -1,5 +1,46 @@
 (in-package #:academia-env)
 
+(defparameter *algorithm-names* (list 
+                                 ;; 'hordq
+                                 ;; 'gold-standard
+                                 'hordq-a-0
+                                 'hordq-a-1
+                                 'hordq-a-2
+                                 'hordq-a-3
+                                 ))
+
+(defvar *current-exploration-strategy*)
+(defvar *step-number-multiplier* 1)
+
+(defun algorithm-index (algorithm)
+  (let ((index (position algorithm *algorithm-names*)))
+    (assert index (index) "Algorithm ~A not defined." algorithm)
+    index))
+
+(defvar *algorithms* (make-array (list (length *algorithm-names*))
+                                 :adjustable t :fill-pointer 0))
+
+(defstruct (algorithm-description (:conc-name ad-))
+  algorithm
+  (bucket-function #'canonicalize)
+  (test #'equal))
+
+(defun algorithm-descriptions ()
+  *algorithms*)
+
+(defun algorithm-description-for (name)
+  (aref *algorithms* (algorithm-index name)))
+
+(defun algorithm-for (name)
+  (ad-algorithm (algorithm-description-for name)))
+
+(defun algorithms ()
+  (map-array 'ad-algorithm *algorithms*))
+
+(defun current-algorithm ()
+  (aref (algorithms) 0))
+
+
 ;;; A grid environment in which a robot should move from a source field to the location of a
 ;;; waste item, collect the waste and then drop it in a target area.  Modeled loosely after the
 ;;; td-taxi world.
@@ -68,7 +109,36 @@
       (call-next-method)))
 
 
-(defclass <waste-env> (<fully-observable-env> <grid-world>)
+(defclass <academia-env> (<fully-observable-env>)
+  ())
+
+(defvar *available-actions* '(n e s w pickup drop refuel))
+
+(defmethod avail-actions ((env <academia-env>) state)
+  (declare (ignore state))
+  ;; All actions are possible in every state.
+  *available-actions*)
+
+(defmethod is-terminal-state ((env <academia-env>) state)
+  "is-terminal-state WASTE-ENV STATE
+A state is terminal if we have unloaded the waste at one of the waste targets."
+  (eq (ac-waste-status state) :at-dest))
+
+(defclass <hades-env> (<academia-env>)
+  ())
+
+(defmethod sample-next ((env <hades-env>) state action)
+  (assert (member action (avail-actions env state)) (action)
+          "Action ~A is not possible in state ~A." action state)
+  ;; ...
+  )
+
+(defmethod sample-init ((env <hades-env>))
+  ;; ...
+)
+
+
+(defclass <waste-env> (<academia-env> <grid-world>)
   ((move-success-prob :type float
                       :initarg :move-success-prob :initform 0.95
                       :accessor move-success-prob)
@@ -116,21 +186,6 @@
                      :alist-keys '(0 1))))
       (setf (waste-sources env) sources)))
   (call-next-method))
-
-(defvar *available-actions* '(n e s w pickup drop refuel))
-
-(defmethod avail-actions ((env <waste-env>) state)
-  (declare (ignore state))
-  ;; All actions are possible in every state.
-  *available-actions*)
-
-(defmethod is-terminal-state ((env <waste-env>) state)
-  "is-terminal-state WASTE-ENV STATE
-A state is terminal if we have unloaded the waste at one of the waste targets or if the robot
-has run out of fuel."
-  (or (eq (ac-waste-status state) :at-dest)
-      #+ (or)
-      (zerop (ac-fuel state))))
 
 (defun move-would-hit-wall-p (env state action)
   (destructuring-bind (robot-x robot-y) (ac-robot-loc state)

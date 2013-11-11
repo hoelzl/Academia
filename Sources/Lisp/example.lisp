@@ -4,49 +4,15 @@
 (defvar *use-complex-environment* nil)
 (defvar *environment* nil)
 
-(defvar *program* #'academia-robot-prog)
-(defvar *exploration-strategy* :random)
+(defvar *program* 'academia-robot-prog)
 
-(defparameter *algorithm-names* (list 
-                                 ;; 'hordq
-                                 ;; 'gold-standard
-                                 'hordq-a-0
-                                 'hordq-a-1
-                                 'hordq-a-2
-                                 'hordq-a-3
-                                 ))
-
-(defvar *current-exploration-strategy*)
-(defvar *step-number-multiplier* 1)
-
-(defun algorithm-index (algorithm)
-  (let ((index (position algorithm *algorithm-names*)))
-    (assert index (index) "Algorithm ~A not defined." algorithm)
-    index))
-
-(defvar *algorithms* (make-array (list (length *algorithm-names*))
-                                 :adjustable t :fill-pointer 0))
-
-(defstruct (algorithm-description (:conc-name ad-))
-  algorithm
-  (bucket-function #'canonicalize)
-  (test #'equal))
-
-(defun algorithm-descriptions ()
-  *algorithms*)
-
-(defun algorithm-description-for (name)
-  (aref *algorithms* (algorithm-index name)))
-
-(defun algorithm-for (name)
-  (ad-algorithm (algorithm-description-for name)))
-
-(defun algorithms ()
-  (map-array 'ad-algorithm *algorithms*))
+;;; Possible values: :random, :epsilon, :boltzman
+(defvar *exploration-strategy* :epsilon)
 
 (defun make-new-environment (&optional (type *environment-type*)
                                        (complexp *use-complex-environment*))
   (ecase type
+    ((:hades) (make-instance '<hades-env>))
     ((:small) (if complexp
                   (make-waste-env-1)
                   (make-waste-env-0)))
@@ -58,20 +24,29 @@
                   (make-waste-env-4)))
     ((:maze :labyrinth) (make-waste-env-6))))
 
-(defun steps-for-environment ()
+(defun number-of-episodes ()
+  (ecase *environment-type*
+    ((:hades) most-positive-fixnum)
+    ((:small) 500)
+    ((:medium) 2500)
+    ((:large) 10000)
+    ((:maze :labyrinth) 2500)))
+
+(defun max-steps-per-episode ()
   (let ((base-size
           (ecase *environment-type*
+            ((:hades) most-positive-fixnum)
             ((:small)
              (if (eq *exploration-strategy* :random)
-                 (if *use-complex-environment*  50000 25000)
-                 (if *use-complex-environment*  50000 25000)))
+                 (if *use-complex-environment*  100 50)
+                 (if *use-complex-environment*  100 50)))
             ((:medium)
              (if (eq *exploration-strategy* :random)
-                 (if *use-complex-environment* 1000000  250000)
-                 (if *use-complex-environment* 1000000  250000)))
-            ((:large) (if *use-complex-environment*  10000000 5000000))
+                 (if *use-complex-environment* 250  100)
+                 (if *use-complex-environment* 250  100)))
+            ((:large) (if *use-complex-environment*  500 250))
             ((:maze :labyrinth) (if (eq *exploration-strategy* :random)
-                                     500000 250000)))))
+                                     50 25)))))
     (* base-size *step-number-multiplier*)))
 
 
@@ -166,6 +141,7 @@
 
 (defun learn-behavior (&key (program *program*)
                             environment-type
+                            (initialize-algorithms t)
                             (use-complex-environment nil use-complex-environment-p)
                             (exploration-strategy *exploration-strategy* exploration-strategy-p)
                             (algorithm-names *algorithm-names* algorithm-names-p)
@@ -184,13 +160,14 @@
   (when hordq-discount-p
     (setf *hordq-discount* hordq-discount))
   (initialize-environment)
-  (initialize-algorithms algorithm-names hordq-learning-rate hordq-discount)
+  (when initialize-algorithms
+    (initialize-algorithms algorithm-names hordq-learning-rate hordq-discount))
   (case exploration-strategy 
     ((:random)
      (format t "~&Learning behavior using random exploration strategy~%")
      (learn program *environment* 'random
             (coerce (algorithms) 'list)
-            (steps-for-environment)
+            (* (max-steps-per-episode) (number-of-episodes))
             :hist-length 100 :step-print-inc 1000 :episode-print-inc 250))
     (otherwise
      (format t "~&Learning behavior using exploration strategy ~A~%"
@@ -199,12 +176,13 @@
           (lambda (ad)
             (learn program *environment*
                    (pick-exploration-strategy ad exploration-strategy)
-                   (ad-algorithm ad) (steps-for-environment)
+                   (ad-algorithm ad)
+                   (* (max-steps-per-episode) (number-of-episodes))
                    :hist-length 100 :step-print-inc 1000 :episode-print-inc 250))
           (algorithm-descriptions)))))
 
-(defparameter *evaluation-steps* 200)
-(defparameter *evaluation-trials* 50)
+(defparameter *evaluation-steps* 50)
+(defparameter *evaluation-trials* 25)
 
 (defun evaluation-for (name)
   (evaluate *program* *environment* (get-policy-hist (algorithm-for name))
@@ -251,7 +229,7 @@ plot '~A' with linespoints ls 1
                                         (string-downcase (symbol-name alg-name)) "-" 
                                         (string-downcase (symbol-name *environment-type*))
                                         (if *use-complex-environment* "-complex-" "-simple-")
-					(format nil "~A" (steps-for-environment))))
+					(format nil "~A" (max-steps-per-episode))))
              (data-file (merge-pathnames
                           (make-pathname :name (concatenate 'string
                                                             data-file-prefix

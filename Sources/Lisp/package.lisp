@@ -2,15 +2,39 @@
 
 (defpackage #:academia-env
   (:use #:common-lisp
+        ;; #:hexameter
         ;; From ALisp
         #:utils
         #:direct-product-set
         #:prob
         #:create-env
         #:grid-world)
-  (:export 
+  (:nicknames :ae)
+  (:export
+   ;; Algorithm info
+   #:*algorithm-names*
+   #:*current-exploration-strategy*
+   #:*step-number-multiplier*
+   #:*algorithms*
+   #:algorithm-description
+   #:make-algorithm-description #:algorithm-description-p
+   #:ad-algorithm
+   #:ad-bucket-function
+   #:ad-test
+   #:algorithm-descriptions
+   #:algorithm-description-for
+   #:algorithm-for
+   #:algorithms
+   #:current-algorithm
+
+   #:extract-q-function-table
+   #:extract-q-function-tables
+   #:build-combined-table
+   #:build-state-table
+
    ;; The Environment
    #:<waste-env>
+   #:<hades-env>
    #:*print-graphically*
    #:set-up-exploration
    

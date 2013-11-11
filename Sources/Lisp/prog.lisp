@@ -20,9 +20,10 @@
 Navigate to location LOC.  Repeatedly choose among the N, E, S, W, and REFUEL actions until the
 robot reaches LOC."
   (until (equal (robot-loc) loc)
-    (with-choice navigate-choice (dir '(N E S W refuel))
+    (with-choice navigate-choice (dir '(N E S W #+ (or) refuel))
       (action navigate-move dir))))
 
+#+ (or)
 (defun* nav-directly (loc)
   "nav-directly LOC
 navigate to LOC using the solution computed from Floyd's algorithm."
@@ -50,7 +51,7 @@ reaches LOC."
           (incf *move-counter*)
           (with-choice navigate-choice (dir '(N E S W))
             (action navigate-move dir))))))
-
+#+ (or)
 (defun* refuel-and-nav-directly (loc)
   "refuel-and-nav-directly LOC 
 Navigate to location LOC.  Repeatedly choose among the N, E, S and W actions until the robot
@@ -67,22 +68,45 @@ reaches LOC."
           (let ((next-loc (second (grid-world:shortest-path (env) (robot-loc) loc))))
             (action navigate-move (direction-from-to (robot-loc) next-loc)))))))
 
+#+ (or)
 (defun* pickup-waste ()
   "pickup-waste
 Navigate to the location of the waste and pick it up."
   (call navigate-to-waste (refuel-and-nav (waste-source)))
   (action pickup-action 'pickup))
 
+(defun* pickup-waste ()
+  "pickup-waste
+Navigate to the location of the waste and pick it up."
+  (refuel-and-nav (waste-source))
+  (action pickup-action 'pickup))
+
+#+ (or)
 (defun* drop-waste ()
   "drop-waste
 Navigate to the dropoff location and drop off the waste."
   (call navigate-to-dropoff (refuel-and-nav (waste-target)))
   (action drop-action 'drop))
 
+(defun* drop-waste ()
+  "drop-waste
+Navigate to the dropoff location and drop off the waste."
+  (refuel-and-nav (waste-target))
+  (action drop-action 'drop))
+
+#+ (or)
 (defun* academia-robot-prog ()
   "academia-robot-prog
 Repeadedly pick up waste and drop it off."
   (loop
-    (progn
+    (choose choose-waste-removal-action
+            (choose-pickup (pickup-waste))
+            (choose-drop (drop-waste)))))
+
+(defun* academia-robot-prog ()
+  "academia-robot-prog
+Repeadedly pick up waste and drop it off."
+  (loop
+    (progn 
       (call choose-waste-removal-action (pickup-waste))
       (call choose-waste-removal-action (drop-waste)))))

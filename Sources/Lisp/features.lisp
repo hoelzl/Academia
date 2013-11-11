@@ -88,6 +88,7 @@
               (funcall fun state nil))
             features)))
 
+#+ (or)
 (defparameter *waste-featurizer-0*
   (make-3partq-featurizer
    ()
@@ -108,77 +109,99 @@
     (:qc-depends)
     (:qe-depends))))
 
+(defparameter *waste-featurizer-0*
+  (make-3partq-featurizer
+   ()
+   (navigate-choice
+    (:qr-depends choice loc target-loc)
+    (:qc-depends choice loc target-loc)
+    (:qe-depends choice loc target-loc))
+   (navigate-to-waste
+    (:qr-depends have-waste?)
+    (:qc-depends have-waste?)
+    (:qe-depends have-waste?))
+   (navigate-to-dropoff
+    (:qr-depends have-waste?)
+    (:qc-depends have-waste?)
+    (:qe-depends have-waste?))
+   (choose-waste-removal-action
+    (:qr-depends choice have-waste?)
+    (:qc-depends choice have-waste?)
+    (:qe-depends choice have-waste?))))
+
 (defparameter *waste-bucket-function-0*
-  (make-bucket-fun '(loc target-direction target-loc)))
+  (make-bucket-fun '(loc target-direction target-loc have-waste?)))
 
 (defparameter *waste-featurizer-1*
   (make-3partq-featurizer
    ()
    (navigate-choice
-    (:qr-depends loc target-loc choice)
-    (:qc-depends loc target-loc choice)
-    (:qe-depends loc target-loc choice))
+    (:qr-depends choice loc target-loc)
+    (:qc-depends choice loc target-loc)
+    (:qe-depends choice loc target-loc))
    (navigate-to-waste
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-depends))
+    (:qr-depends have-waste?)
+    (:qc-depends have-waste?)
+    (:qe-depends have-waste?))
    (navigate-to-dropoff
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-depends))
+    (:qr-depends have-waste?)
+    (:qc-depends have-waste?)
+    (:qe-depends have-waste?))
    (choose-waste-removal-action
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-dependes))))
+    (:qr-depends choice have-waste?)
+    (:qc-depends choice have-waste?)
+    (:qe-depends choice have-waste?))))
 
 (defparameter *waste-bucket-function-1*
-  (make-bucket-fun '(loc target-loc)))
+  (make-bucket-fun '(loc target-loc have-waste?)))
 
 (defparameter *waste-featurizer-2*
   (make-3partq-featurizer
    ()
    (navigate-choice
-    (:qr-depends loc choice navigating-to-waste)
-    (:qc-depends choice navigating-to-waste
+    (:qr-depends choice loc navigating-to-waste
                  shortest-path-distance shortest-path-direction)
-    (:qe-depends choice navigating-to-waste
+    (:qc-depends choice loc navigating-to-waste
+                 shortest-path-distance shortest-path-direction)
+    (:qe-depends choice loc navigating-to-waste
                  shortest-path-distance shortest-path-direction))
    (navigate-to-waste
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-depends))
+    (:qr-depends choice)
+    (:qc-depends choice)
+    (:qe-depends choice))
    (navigate-to-dropoff
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-depends))
+    (:qr-depends choice)
+    (:qc-depends choice)
+    (:qe-depends choice))
    (choose-waste-removal-action
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-dependes))))
+    (:qr-depends choice have-waste?)
+    (:qc-depends choice have-waste?)
+    (:qe-depends choice have-waste?))))
 
 (defparameter *waste-bucket-function-2*
-  (make-bucket-fun '(loc navigating-to-waste shortest-path-distance shortest-path-direction)))
+  (make-bucket-fun '(loc navigating-to-waste shortest-path-distance
+                     shortest-path-direction have-waste?)))
 
 (defparameter *waste-featurizer-3*
   (make-3partq-featurizer
    ()
    (navigate-choice
-    (:qr-depends loc choice navigating-to-waste)
-    (:qc-depends choice navigating-to-waste
-                 shortest-path-distance shortest-path-direction)
-    (:qe-depends choice shortest-path-direction))
+    (:qr-depends choice loc navigating-to-waste shortest-path-direction)
+    (:qc-depends choice loc navigating-to-waste shortest-path-direction)
+    (:qe-depends choice loc navigating-to-waste shortest-path-direction))
    (navigate-to-waste
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-depends))
+    (:qr-depends choice)
+    (:qc-depends choice)
+    (:qe-depends choice))
    (navigate-to-dropoff
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-depends))
+    (:qr-depends choice)
+    (:qc-depends choice)
+    (:qe-depends choice))
    (choose-waste-removal-action
-    (:qr-depends)
-    (:qc-depends)
-    (:qe-dependes))))
+    (:qr-depends choice have-waste?)
+    (:qc-depends choice have-waste?)
+    (:qe-depends choice have-waste?))))
 
 (defparameter *waste-bucket-function-3*
-  (make-bucket-fun '(loc navigating-to-waste shortest-path-distance shortest-path-direction)))
+  (make-bucket-fun '(loc navigating-to-waste 
+                     shortest-path-direction have-waste?)))
