@@ -21,7 +21,7 @@
     (let ((result (make-hash-table :test (hash-table-test qr) :size (hash-table-size qr))))
       (maphash (lambda (k v)
                  (setf (gethash k result)
-                       (+ v (gethash k qc) (gethash k qe))))
+                       (+ v (gethash k qc 0) (gethash k qe 0))))
                qr)
       result)))
 

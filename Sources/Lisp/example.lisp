@@ -7,7 +7,7 @@
 (defvar *program* 'academia-robot-prog)
 
 ;;; Possible values: :random, :epsilon, :boltzman
-(defvar *exploration-strategy* :epsilon)
+(defvar *exploration-strategy* :random)
 
 (defun make-new-environment (&optional (type *environment-type*)
                                        (complexp *use-complex-environment*))
@@ -67,7 +67,7 @@
   (setf *algorithm-names* algorithm-names)
   (setf (fill-pointer *algorithms*) 0)
   (mapc (lambda (alg)
-          (when (member (first alg) algorithm-names)
+          (when (member (first alg) *algorithm-names*)
             (vector-push-extend (apply 'make-algorithm-description (rest alg)) *algorithms*)))
         (list
          (list 'smdpq :algorithm (alisp-smdpq:make-smdpq-alg :hist-out-dir "Temp/"))
