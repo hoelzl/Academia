@@ -13,7 +13,7 @@
 (learn-behavior)
 
 (let ((knowledge-base (build-state-table))
-      (knowledge-selection (make-hash-table))
+      (knowledge-selection (make-hash-table :test 'equalp))
       (knowledge-lesson (item :class "commit goal"))
       (situation-count 0))
 
@@ -35,10 +35,10 @@
                                                                 :control (item :dir action))
                                                       :for utility))))
                    (format t "~A -> ~A : ~A [ ~A ]~%" start target action utility)
-                   (when (< utility (gethash situation knowledge-selection 100000))
+                   (when (> utility (gethash situation knowledge-selection -100000))
                      (setf (gethash situation knowledge-selection) utility)
                      (setf (gethash (getgoal choice-point) knowledge-lesson) (cons feature-advice (gethash (getgoal choice-point) knowledge-lesson)))))
-                 (format t "--~%"))))
+                 (format t "-- ~A, ~A : ~A [ ~A ]~%" choice-point (svref consideration 2) action utility))))
 
 
   (gbbopen-tools:define-class logic-space (spondeios:hexameter-space)
@@ -57,5 +57,5 @@
      t))
 
   (let ((context (hex:init :me "localhost:55559" :space 'logic-space)))
-    (format t "~&Entering infinite response loop, please abort manually.")
+    (format t "~&Entering infinite response loop, please abort manually.~%")
     (loop while t do (hex:respond context 0))))
