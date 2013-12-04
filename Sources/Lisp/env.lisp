@@ -140,7 +140,7 @@ A state is terminal if we have unloaded the waste at one of the waste targets."
 
 (defclass <waste-env> (<academia-env> <grid-world>)
   ((move-success-prob :type float
-                      :initarg :move-success-prob :initform 0.95
+                      :initarg :move-success-prob :initform 1.0 ;0.95
                       :accessor move-success-prob)
    (wall-collision-cost :type float
                         :initarg :wall-collision-cost :initform 0.5

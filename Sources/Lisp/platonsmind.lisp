@@ -9,7 +9,7 @@
 ;; TODO: hordq-a-<n> with n > 1 throw errors
 
 (make-new-environment :medium)
-(initialize-algorithms (list 'hordq-a-0))
+(initialize-algorithms (list 'hordq-a-0 'hordq-a-1))
 (learn-behavior)
 
 (let ((knowledge-base (build-state-table))
@@ -29,7 +29,7 @@
                         (target (svref consideration 3))
                         (situation (vector choice-point start target))
                         (feature-advice (item :class "commit feature"
-                                              1 (item :on (item :x (first start) :y (second start) :targetx (first target) :targety (second target))
+                                              1 (item :on (item :x (second start) :y (first start) :targetx (second target) :targety (first target))
                                                       :do (item :class "motor"
                                                                 :type "move"
                                                                 :control (item :dir action))

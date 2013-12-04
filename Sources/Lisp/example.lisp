@@ -11,6 +11,7 @@
 
 (defun make-new-environment (&optional (type *environment-type*)
                                        (complexp *use-complex-environment*))
+  ;; TODO?: Set *environmen-type* when given a parameter here
   (ecase type
     ((:hades) (make-instance '<hades-env>))
     ((:small) (if complexp
@@ -27,7 +28,7 @@
 (defun number-of-episodes ()
   (ecase *environment-type*
     ((:hades) most-positive-fixnum)
-    ((:small) 500)
+    ((:small) 1500)
     ((:medium) 2500)
     ((:large) 10000)
     ((:maze :labyrinth) 2500)))
