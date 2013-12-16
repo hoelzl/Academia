@@ -1,0 +1,3 @@
+[submodule "Sources/Lua/hades"]
+	path = Sources/Lua/hades
+	url = https://github.com/thomasgabor/hades.git

@@ -1,0 +1,1 @@
+lua ../Sources/Lua/hades/ghost.lua localhost:55556 ../Sources/Lua/greeting.ghost
