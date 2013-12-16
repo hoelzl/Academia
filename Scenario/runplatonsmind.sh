@@ -1,3 +1,12 @@
-echo "Please run ../Sources/Lisp/platonsmind.lisp in hexameter-lisp! (And accept the compile error from `cc`)"
-# Loading pzmq currently crashes in my machine, but can be saved by accepting the error in slime
-#sbcl --script ./platonsmind.lisp # this is how this should work in the end
+echo "+------------------------------------------------------------------------+"
+echo "| Please make sure you have installed the following modules from our     |"
+echo "| project sites and set up ASDF to find them:                            |"
+echo "|  * HEXAMETER for LISP (:hexameter)                                     |"
+echo "|  * HRL (:hrl)                                                          |"
+echo "+------------------------------------------------------------------------+"
+echo
+echo "Now running Platon's mind..."
+echo
+sbcl --load ../Sources/Lisp/platonsmind.lisp 
+# script doesn't work because then we cannot laod any library, but maybe we can fix this in the future
+#sbcl --script ../Sources/Lisp/platonsmind.lisp
