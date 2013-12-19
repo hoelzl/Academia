@@ -51,9 +51,10 @@
             :answer (list (item 
                            :type "move"
                            :control (item :up 1))
-                          (item
-                           :type "shout"
-                           :control (item :content knowledge-lesson)))))
+                          (when (and (first parameter) (< (gethash "period" (first parameter) 0) 4))
+                            (item
+                             :type "shout"
+                             :control (item :content knowledge-lesson))))))
      t))
 
   (let ((context (hex:init :me "localhost:55559" :space 'logic-space)))

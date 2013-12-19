@@ -238,6 +238,15 @@ local forget = {
     end
 }
 
+local brainstorm = {
+    type = "brainstorm",
+    class = "motor",
+    run = function(me, _, control)
+        me.state.attention = control.content
+        return me
+    end
+}
+
 local procrastinate = {
     type = "procrastinate",
     class = "motor",
@@ -268,7 +277,8 @@ world = {
         state = {
             x = 0,
             y = 0
-        }
+        },
+        tocked = 10
     },
     platon = {
         name = "platon",
@@ -283,7 +293,7 @@ world = {
     math1 = {
         name = "math1",
         sensors = {spot, listen, guts, look},
-        motors = {move, forget, procrastinate, strive},
+        motors = {move, forget, procrastinate, strive, brainstorm},
         state = {
             x = 0,
             y = 1,
@@ -296,7 +306,7 @@ world = {
     math2 = {
         name = "math2",
         sensors = {spot, listen, guts, look},
-        motors = {move, forget, procrastinate, strive},
+        motors = {move, forget, procrastinate, strive, brainstorm},
         state = {
             x = 1,
             y = 1,
