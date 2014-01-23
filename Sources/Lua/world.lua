@@ -158,6 +158,18 @@ local look = {
     end
 }
 
+local result = {
+    type = "result",
+    class = "sensor",
+    measure = function (me, world, control)
+        local carriage = 0
+        for name,body in pairs(world) do
+            carriage = carriage + (body.state.collected or 0)
+        end
+        return {carriage=carriage}
+    end
+}
+
 local move = {
     type = "move",
     class = "motor",
@@ -272,13 +284,16 @@ placemultiple(wall(),            8, range(-1, 7))
 world = {
     observ = {
         name = "observ",
-        sensors = {},
+        sensors = {result},
         motors = {move},
         state = {
             x = 0,
             y = 0
         },
-        tocked = 10
+        obolos = {
+            results = {"result"}
+        }
+        --tocked = 10
     },
     platon = {
         name = "platon",
@@ -288,6 +303,30 @@ world = {
             x = 1,
             y = 1,
             goal = "live"
+        },
+        psyche = function(realm, me)
+            local ultimateplan = {
+                {type = "procrastinate", control = {}}
+            }
+            return function(clock, body)
+                local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
+                local deliberation = hexameter.ask("put", "localhost:55559", "solve", {{body=body, state=feeling, period=clock}})[1]
+                if deliberation then
+                    local actions = deliberation.solution or deliberation.answer or deliberation.ANSWER
+                    if actions == 42 then
+                        actions = ultimateplan
+                    end
+                    local plantext = ""
+                    for _,action in pairs(actions) do
+                        plantext = plantext..(plantext == "" and "" or ", ")..action.type
+                        hexameter.tell("put", realm, "motors", {{body=body, type=action.type, control=action.control}})
+                    end
+                    print("&&  Plan says: "..plantext)
+                end
+            end
+        end,
+        obolos = {
+            psyche = "localhost:55558"
         }
     },
     math1 = {
@@ -301,6 +340,10 @@ world = {
             targetx = 0,
             targety = 0
         },
+        psyche = "./mathetes.lua",
+        obolos = {
+            psyche = true
+        },
         print = explain
     },
     math2 = {
@@ -313,6 +356,10 @@ world = {
             goal = "navigate",
             targetx = 0,
             targety = 0
+        },
+        psyche = "./mathetes.lua",
+        obolos = {
+            psyche = true
         },
         print = explain
     }
