@@ -1,4 +1,5 @@
 require "serialize"
+require "tartaros"
 local show = serialize.presentation
 
 local settings = {
@@ -22,83 +23,12 @@ end
 
 -- static world description library
 
-statics = {}
-
-local function place(object, x, y)
-    statics[x] = statics[x] or {}
-    statics[x][y] = statics[x][y] or {}
-    table.insert(statics[x][y], object)
+--import functions
+for name,value in pairs(tartaros.sisyphos) do
+    _G[name] = value
 end
-
-local function placemultiple(object, xs, ys)
-    if not (type(xs) == "table") then xs = {xs} end
-    if not (type(ys) == "table") then ys = {ys} end
-    for _,x in pairs(xs) do
-        for _,y in pairs(ys) do
-            place(object, x, y)
-        end
-    end
-end
-
-local function range(start, stop, step)
-    step = step or 1
-    local result = {}
-    local i = start
-    while i <= stop do
-        table.insert(result, i)
-        i = i + step
-    end
-    return result
-end
-
-local function thereis(x, y, class)
-    if not statics[x] then return false end
-    if not statics[x][y] then return false end
-    for _, object in pairs(statics[x][y]) do
-        if object.class == class then
-            return true
-        end
-    end
-    return false
-end
-
-local function accessible(x, y)
-    if not statics[x] then return true end
-    if not statics[x][y] then return true end
-    for _, object in pairs(statics[x][y]) do
-        if not object.accessible then
-            return false
-        end
-    end
-    return true
-end
-
-local function space()
-    return {
-        class = "space",
-        accessible = true
-    }
-end
-
-local function nest()
-    return {
-        class = "nest",
-        accessible = true
-    }
-end
-
-local function resource()
-    return {
-        class = "resource",
-        accessible = true
-    }
-end
-
-local function wall()
-    return {
-        class = "wall",
-        accessible = false
-    }
+for name,value in pairs(tartaros.tantalos) do
+    _G[name] = value
 end
 
 
@@ -292,8 +222,8 @@ world = {
         },
         obolos = {
             results = {"result"}
-        }
-        --tocked = 10
+        },
+        tocked = auto
     },
     platon = {
         name = "platon",
@@ -365,4 +295,34 @@ world = {
     }
 }
 
-return world --not necessary at the time of writing this, but could become part of the specification
+metaworld = {
+    statics = statics, --remember, this is tartaros.sisyphos.statics
+    charon = {
+        addresses = "localhost:55555,...,localhost:55565,-localhost:55556,-localhost:55559",
+        doomsday = 12,
+        ferry = {
+            {
+                name = "Developer's Concern",
+                address = "localhost:77777",
+                run = function (basepath, address) return "echo \"   \" hello "..basepath.." "..address.." !" end
+            },
+            {
+                name = "Platon's Mind",
+                address = "localhost:55559",
+                run = function (worldpath, address)
+                    return "sbcl --noinform --end-runtime-options --load "..worldpath.."../Lisp/platonsmind.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
+                end,
+                halt = function (worldpath, address)
+                    hexameter.tell("put", address, "charon.halt", {{charon="halting"}})
+                    return "echo > /dev/null"
+                end,
+                recycle = true --NOTE: You can only recycle Hexameter components!
+            }
+        },
+        --avatar = "observ"
+    }
+}
+
+setmetatable(world, metaworld)
+
+return world

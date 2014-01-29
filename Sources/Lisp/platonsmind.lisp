@@ -1,5 +1,6 @@
 (require :hexameter)
 (require :academia)
+(require :sb-posix)
 (in-package :academia-prog)
 
 (defun item (&rest args)
@@ -12,7 +13,9 @@
 (initialize-algorithms (list 'hordq-a-0 'hordq-a-1))
 (learn-behavior)
 
-(let ((knowledge-base (build-state-table))
+(let ((me (or (cadr sb-ext:*posix-argv*) "localhost:55559"))
+      (apocalypse nil)
+      (knowledge-base (build-state-table))
       (knowledge-selection (make-hash-table :test 'equalp))
       (knowledge-lesson (item :class "commit goal"))
       (situation-count 0))
@@ -46,17 +49,23 @@
 
   (defmethod spondeios:handle ((self logic-space) msgtype author space parameter
                                &optional recipient)
-    (values
-     (list (item 
-            :answer (list (item 
-                           :type "move"
-                           :control (item :up 1))
-                          (when (and (first parameter) (< (gethash "period" (first parameter) 0) 4))
-                            (item
-                             :type "shout"
-                             :control (item :content knowledge-lesson))))))
-     t))
+    (if (string= space "charon.halt")
+        (progn
+          (setf apocalypse t)
+          (values nil nil))
+        (values
+         (list (item 
+                :answer (list (item 
+                               :type "move"
+                               :control (item :up 1))
+                              (when (and (first parameter) (< (gethash "period" (first parameter) 0) 4))
+                                (item
+                                 :type "shout"
+                                 :control (item :content knowledge-lesson))))))
+         t)))
 
-  (let ((context (hex:init :me "localhost:55559" :space 'logic-space)))
+  (let ((context (hex:init :me me :space 'logic-space)))
     (format t "~&Entering infinite response loop, please abort manually.~%")
-    (loop while t do (hex:respond context 0))))
+    (loop while (not apocalypse) do (hex:respond context 0))))
+
+(format t "~&Halt.~%")
