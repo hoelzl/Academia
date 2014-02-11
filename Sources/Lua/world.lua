@@ -221,7 +221,13 @@ world = {
             y = 0
         },
         obolos = {
-            results = {"result"}
+            results = {"result"},
+            mission = {
+                carrysomestuff = { --name is optional, can as well be an array
+                    type = "result",
+                    goal = {carriage=1}
+                }
+            }
         },
         tocked = auto
     },
@@ -240,7 +246,7 @@ world = {
             }
             return function(clock, body)
                 local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
-                local deliberation = hexameter.ask("put", "localhost:55559", "solve", {{body=body, state=feeling, period=clock}})[1]
+                local deliberation = hexameter.ask("put", "localhost:55559", "plan", {{body=body, state=feeling, period=clock}})[1] --s/"plan"/"solve"
                 if deliberation then
                     local actions = deliberation.solution or deliberation.answer or deliberation.ANSWER
                     if actions == 42 then
@@ -256,7 +262,7 @@ world = {
             end
         end,
         obolos = {
-            psyche = "localhost:55558"
+            psyche = true --"localhost:55558"
         }
     },
     math1 = {
@@ -270,7 +276,7 @@ world = {
             targetx = 0,
             targety = 0
         },
-        psyche = "./mathetes.lua",
+        psyche = "./mathetesneos.lua", --"./mathetes.lua"
         obolos = {
             psyche = true
         },
@@ -287,7 +293,7 @@ world = {
             targetx = 0,
             targety = 0
         },
-        psyche = "./mathetes.lua",
+        psyche = "./mathetesneos.lua", --"./mathetes.lua"
         obolos = {
             psyche = true
         },
@@ -318,7 +324,7 @@ metaworld = {
                 end,
                 recycle = true --NOTE: You can only recycle Hexameter components!
             }
-        },
+        }
         --avatar = "observ"
     }
 }

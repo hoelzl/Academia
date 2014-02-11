@@ -18,7 +18,8 @@
       (knowledge-base (build-state-table))
       (knowledge-selection (make-hash-table :test 'equalp))
       (knowledge-lesson (item :class "commit goal"))
-      (situation-count 0))
+      (situation-count 0)
+      (plan nil))
 
   (defun getgoal (choice-point)
     'navigate)
@@ -38,6 +39,13 @@
                                                                 :control (item :dir action))
                                                       :for utility))))
                    (format t "~A -> ~A : ~A [ ~A ]~%" start target action utility)
+                   (setf plan
+                         (append
+                          (list
+                           (item :class "anchor" :x (second start) :y (first start) :targetx (second target) :targety (first target) :appeal utility)
+                           (item :class "motor" :type "move" :control (item :dir action))
+                           (item :class "release"))
+                          plan))
                    (when (> utility (gethash situation knowledge-selection -100000))
                      (setf (gethash situation knowledge-selection) utility)
                      (setf (gethash (getgoal choice-point) knowledge-lesson) (cons feature-advice (gethash (getgoal choice-point) knowledge-lesson)))))
@@ -49,20 +57,26 @@
 
   (defmethod spondeios:handle ((self logic-space) msgtype author space parameter
                                &optional recipient)
-    (if (string= space "charon.halt")
-        (progn
-          (setf apocalypse t)
-          (values nil nil))
-        (values
-         (list (item 
-                :answer (list (item 
-                               :type "move"
-                               :control (item :up 1))
-                              (when (and (first parameter) (< (gethash "period" (first parameter) 0) 4))
-                                (item
-                                 :type "shout"
-                                 :control (item :content knowledge-lesson))))))
-         t)))
+    (cond ((string= space "charon.halt")
+           (progn
+             (setf apocalypse t)
+             (values nil nil)))
+          ((string= space "solve")
+           (values
+            (list (item 
+                   :answer (list (item 
+                                  :type "move"
+                                  :control (item :up 1))
+                                 (when (and (first parameter) (< (gethash "period" (first parameter) 0) 4))
+                                   (item
+                                    :type "shout"
+                                    :control (item :content knowledge-lesson))))))
+            t))
+          ((string= space "plan")
+           (values
+            (list (item :answer (list (item :type "shout" :control (item :content plan)))))
+            t))
+          ))
 
   (let ((context (hex:init :me me :space 'logic-space)))
     (format t "~&Entering infinite response loop, please abort manually.~%")
