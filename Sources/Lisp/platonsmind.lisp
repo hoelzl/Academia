@@ -23,6 +23,19 @@
 
   (defun getgoal (choice-point)
     'navigate)
+  
+  (defun newx (oldx dir)
+    (cond ((equalp dir 'n) oldx)
+          ((equalp dir 'e) (+ oldx 1))
+          ((equalp dir 's) oldx)
+          ((equalp dir 'w) (- oldx 1))))
+  
+  (defun newy (oldy dir)
+    (cond ((equalp dir 'n) (- oldy 1))
+          ((equalp dir 'e) oldy)
+          ((equalp dir 's) (+ oldy 1 ))
+          ((equalp dir 'w) oldy)))
+
 
   (loop for consideration being the hash-keys of knowledge-base
         using (hash-value utility)
@@ -43,7 +56,12 @@
                          (append
                           (list
                            (item :class "anchor" :x (second start) :y (first start) :targetx (second target) :targety (first target) :appeal utility)
+                           (item :class "anchor" :x (second start) :y (first start) :targetx (second target) :targety (first target) :appeal utility :meta "concept")
                            (item :class "motor" :type "move" :control (item :dir action))
+                           (item :class "motor" :type "move" :control (item :dir action) :meta "concept")
+                           (item :class "feature" :x (newx (second start) action) :y (newy (first start) action))
+                           (item :class "feature" :x (newx (second start) action) :y (newy (first start) action) :meta "concept")
+                           (item :class "release" :meta "concept")
                            (item :class "release"))
                           plan))
                    (when (> utility (gethash situation knowledge-selection -100000))
