@@ -80,7 +80,16 @@
    ;; The waste status 
    #:on-robot
    #:at-source
-   #:at-dest))
+   #:at-dest
+
+   ;; Algorithm names
+   #:smdpq
+   #:hordq
+   #:gold-standard
+   #:hordq-a-0
+   #:hordq-a-1
+   #:hordq-a-2
+   #:hordq-a-3))
 
 (defpackage #:academia-prog
   (:use #:common-lisp

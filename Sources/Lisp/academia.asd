@@ -12,6 +12,7 @@
                (:file "epsilon-policy")
                (:file "package")
                (:file "env")
+               (:file "rescue-env")
                (:file "extract-q-function")
                (:file "prog")
                (:file "features")

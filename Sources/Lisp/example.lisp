@@ -1,5 +1,6 @@
 (in-package #:academia-prog)
 
+(defvar *experiment-kind* :waste) ;; or :rescue
 (defvar *environment-type* :small)
 (defvar *use-complex-environment* nil)
 (defvar *environment* nil)
@@ -9,21 +10,27 @@
 ;;; Possible values: :random, :epsilon, :boltzman
 (defvar *exploration-strategy* :random)
 
-(defun make-new-environment (&optional (type *environment-type*)
+(defun make-new-environment (&optional (kind *experiment-kind*)
+                                       (type *environment-type*)
                                        (complexp *use-complex-environment*))
-  ;; TODO?: Set *environmen-type* when given a parameter here
-  (ecase type
-    ((:hades) (make-instance '<hades-env>))
-    ((:small) (if complexp
-                  (make-waste-env-1)
-                  (make-waste-env-0)))
-    ((:medium) (if complexp
-                   (make-waste-env-3)
-                   (make-waste-env-2)))
-    ((:large) (if complexp
-                  (make-waste-env-5)
-                  (make-waste-env-4)))
-    ((:maze :labyrinth) (make-waste-env-6))))
+  (ecase kind
+    ((:waste)
+     ;; TODO?: Set *environmen-type* when given a parameter here
+     (ecase type
+       ((:hades) (make-instance '<hades-env>))
+       ((:small) (if complexp
+                     (make-waste-env-1)
+                     (make-waste-env-0)))
+       ((:medium) (if complexp
+                      (make-waste-env-3)
+                      (make-waste-env-2)))
+       ((:large) (if complexp
+                     (make-waste-env-5)
+                     (make-waste-env-4)))
+       ((:maze :labyrinth) (make-waste-env-6))))
+    ((:rescue)
+     ;...
+     )))
 
 (defun number-of-episodes ()
   (ecase *environment-type*
@@ -62,6 +69,20 @@
 (defparameter *hordq-learning-rate* 0.02)
 (defparameter *hordq-discount* 1)
 
+(defun hordq-featurizer-for (algorithm kind)
+  (ecase kind
+    ((:waste)
+     (cdr (assoc algorithm *waste-featurizers*)))
+    ((:rescue)
+     (cdr (assoc algorithm *rescue-featurizers*)))))
+
+(defun hordq-bucket-function-for (algorithm kind)
+  (ecase kind
+    ((:waste)
+     (cdr (assoc algorithm *waste-bucket-functions*)))
+    ((:rescue)
+     (cdr (assoc algorithm *rescue-bucket-functions*)))))
+
 (defun initialize-algorithms (&optional (algorithm-names *algorithm-names*)
                                         (hordq-learning-rate *hordq-learning-rate*)
                                         (hordq-discount *hordq-discount*))
@@ -70,39 +91,20 @@
   (mapc (lambda (alg)
           (when (member (first alg) *algorithm-names*)
             (vector-push-extend (apply 'make-algorithm-description (rest alg)) *algorithms*)))
-        (list
+        (list*
          (list 'smdpq :algorithm (alisp-smdpq:make-smdpq-alg :hist-out-dir "Temp/"))
          (list 'hordq :algorithm (make-instance 'ahq:<hordq>))
          (list 'gold-standard 
                :algorithm (alisp-gold-standard:make-alisp-gold-standard-learning-alg))
-         (list 'hordq-a-0 
-               :algorithm (make-instance 'ahq:<hordq>
-                            :features *waste-featurizer-0*
-                            :lrate hordq-learning-rate
-                            :discount hordq-discount)
-               :bucket-function *waste-bucket-function-0*
-               :test #'equalp)
-         (list 'hordq-a-1 
-               :algorithm (make-instance 'ahq:<hordq>
-                            :features *waste-featurizer-1*
-                            :lrate hordq-learning-rate
-                            :discount hordq-discount)
-               :bucket-function *waste-bucket-function-1*
-               :test #'equalp)
-         (list 'hordq-a-2 
-               :algorithm (make-instance 'ahq:<hordq>
-                            :features *waste-featurizer-2*
-                            :lrate hordq-learning-rate
-                            :discount hordq-discount)
-               :bucket-function *waste-bucket-function-2*
-               :test #'equalp)
-         (list 'hordq-a-3 
-               :algorithm (make-instance 'ahq:<hordq>
-                            :features *waste-featurizer-3*
-                            :lrate hordq-learning-rate
-                            :discount hordq-discount)
-               :bucket-function *waste-bucket-function-3*
-               :test #'equalp)))
+         (mapcar (lambda (algorithm)
+                   (list algorithm
+                         :algorithm (make-instance 'ahq:<hordq>
+                                      :features (hordq-featurizer-for algorithm *experiment-kind*)
+                                      :lrate hordq-learning-rate
+                                      :discount hordq-discount)
+                         :bucket-function (hordq-bucket-function-for algorithm *experiment-kind*)
+                         :test #'equalp))
+                 '(hordq-a-0 hordq-a-1 hordq-a-2 hordq-a-3))))
   (values))
 
 (defun explore-policies (&optional (show-advice t))

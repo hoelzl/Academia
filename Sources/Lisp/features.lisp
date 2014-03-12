@@ -205,3 +205,18 @@
 (defparameter *waste-bucket-function-3*
   (make-bucket-fun '(loc navigating-to-waste 
                      shortest-path-direction have-waste?)))
+
+(defparameter *waste-featurizers*
+  `((hordq-a-0 . ,*waste-featurizer-0*)
+    (hordq-a-1 . ,*waste-featurizer-1*)
+    (hordq-a-2 . ,*waste-featurizer-2*)
+    (hordq-a-3 . ,*waste-featurizer-3*)))
+
+(defparameter *waste-bucket-functions*
+  `((hordq-a-0 . ,*waste-bucket-function-0*)
+    (hordq-a-1 . ,*waste-bucket-function-1*)
+    (hordq-a-2 . ,*waste-bucket-function-2*)
+    (hordq-a-3 . ,*waste-bucket-function-3*)))
+
+(defparameter  *rescue-featurizers* `())
+(defparameter *rescue-bucket-functions* `())
