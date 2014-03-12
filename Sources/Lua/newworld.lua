@@ -1,6 +1,12 @@
-require "serialize"
-require "tartaros"
-local show = serialize.presentation
+local tartaros = require "tartaros"
+local world, metaworld = tartaros.create(environment)
+tartaros.load("sisyphos", true)
+tartaros.load("tantalos", true)
+
+--import functions (NOTE: This is not recommended)
+for name,value in pairs(tartaros) do
+    _G[name] = value
+end
 
 local settings = {
     rates = {
@@ -20,17 +26,6 @@ local explain = function (body)
     explanation = explanation.."      collected: "..(body.state.collected or 0).."\n"
     return explanation
 end
-
--- static world description library
-
---import functions
-for name,value in pairs(tartaros.sisyphos) do
-    _G[name] = value
-end
-for name,value in pairs(tartaros.tantalos) do
-    _G[name] = value
-end
-
 
 -- sensor/motor library
 
@@ -213,36 +208,7 @@ place(wall(), 1, 1) --this makes thinks difficult because the tecaher does not k
 
 -- dynamic world configuration
 
-function deepcopy(table)
-    if type(table) == "table" then
-        local newtable = {}
-        for key,val in pairs(table) do
-            newtable[key] = deepcopy(val)
-        end
-        return newtable
-    else
-        return table
-    end
-end
-
-function update(base, changes, recursive)
-    local newtable = deepcopy(base)
-    for key,val in pairs(changes or {}) do
-        if recursive and type(val) == "table" and type(newtable[key]) == "table" then
-            newtable[key] = update(newtable[key], val, true)
-        else
-            newtable[key] = val
-        end
-    end
-    return newtable
-end
-
-function clone(world, original, name, changes)
-    world[name] = update(world[original], changes, true)
-end
-
-world = {
-    observ = {
+    world.observ = {
         name = "observ",
         sensors = {result},
         motors = {move},
@@ -264,8 +230,8 @@ world = {
         time = function (me, world, clock)
             me.state.age = clock
         end
-    },
-    platon = {
+    }
+    world.platon = {
         name = "platon",
         sensors = {spot, guts, look},
         motors = {move, shout, procrastinate, strive},
@@ -300,8 +266,8 @@ world = {
         obolos = {
             psyche = true --"localhost:55558"
         }
-    },
-    math1 = {
+    }
+    world.math1 = {
         name = "math1",
         sensors = {spot, listen, guts, look},
         motors = {move, forget, procrastinate, strive, brainstorm, shout},
@@ -318,13 +284,10 @@ world = {
         },
         print = explain
     }
-}
+    clone("math1", "math2", {state={x=1}})
 
-clone(world, "math1", "math2", {state={x=1}})
-
-metaworld = {
-    statics = statics, --remember, this is tartaros.sisyphos.statics
-    charon = {
+    metaworld.statics = stuff()
+    metaworld.charon = {
         addresses = "localhost:55555,...,localhost:55565,-localhost:55556,-localhost:55559",
         doomsday = 12,
         ferry =
@@ -341,11 +304,11 @@ metaworld = {
                 end,
                 recycle = true --NOTE: You can only recycle Hexameter components!
             }
+        },
+        --avatar = "observ",
+        hexameter = {
+            socketcache = 10
         }
-        --avatar = "observ"
     }
-}
-
-setmetatable(world, metaworld)
 
 return world
