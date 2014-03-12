@@ -88,6 +88,9 @@
             (node-id self)
             (mapcar #'edge-id (node-edges self)))))
 
+(defun node-neighbors (node)
+  (mapcar #'edge-to (node-edges node)))
+
 (defun node-distance (node-1 node-2)
   (let* ((x1 (node-x node-1))
          (x2 (node-x node-2))
@@ -211,9 +214,21 @@
         'object-location (hash-to-alist (rs-object-locations state))
         'victim-health (hash-to-alist (rs-victim-health state))))
 
+;;; The variable *PRINT-GRAPHICALLY* is defined in env.lisp.
+
 (defmethod print-object ((state rescue-state) stream)
-  (print-unreadable-object (state stream :type t :identity t)
-    (format stream "~A" (rs-location state))))
+  (if *print-graphically*
+      (let ((node (rs-location state)))
+        (format stream "~&State:~12T~A, carrying ~:[nothing~;~:*~A~], damage ~A~%"
+                (node-id node)
+                (rs-carriage state)
+                (rs-damage state))
+        (format stream "Neighbors:~12T~{~A~^, ~}~%"
+                (mapcar #'node-id (node-neighbors node))))
+      (print-unreadable-object (state stream :type t :identity t)
+        (format stream "~A; carriage: ~A, dammage: ~A"
+                (node-id (rs-location state))
+                (rs-carriage state) (rs-damage state)))))
 
 (defun node-objects (state node)
   (let ((object-hash (rs-object-locations state))
@@ -230,7 +245,9 @@
    (home-node :accessor home-node :initarg :home-node
               :initform (required-initarg :home-node))
    (max-damage :accessor max-damage :initarg :max-damage
-               :initform nil)))
+               :initform nil)
+   (invalid-action-cost :accessor invalid-action-cost :initarg :invalid-action-cost
+                        :initform 2.0)))
 
 
 (defmethod initialize-instance :after ((self <rescue-env>) &key)
@@ -242,8 +259,11 @@
 #||
 (progn
   (defparameter *re-graph*
-    (make-graph '((0.0 0.0 :id node-1) (0.0 1.0 :id node-2) (1.0 1.0 :id node-3))
-                '((node-1 node-2) (node-2 node-3))))
+    (make-graph '((0.0 0.0 :id node-1)
+                  (0.0 1.0 :id node-2)
+                  (1.0 1.0 :id node-3)
+                  (1.0 0.0 :id node-4))
+                '((node-1 node-2) (node-1 node-4) (node-2 node-3) (node-4 node-1))))
 
   (defparameter *rs*
     (let ((node-1 (find-node *re-graph* 'node-1))
@@ -286,9 +306,15 @@
                (destructuring-bind (action-type &rest parameters) action
                  (ecase action-type
                    ((go)
-                    ;; TODO: Check for errors
-                    (let ((new-location (find-node (nav-graph env) (first parameters))))
-                      (setf (rs-location new-state) new-location)))
+                    ;; TODO: should we add additional damage for taking invalid choices?
+                    (let* ((new-location (find-node (nav-graph env) (first parameters)))
+                           (edge (find new-location (node-edges (rs-location state))
+                                       :key 'edge-to)))
+                      (cond (edge
+                             (setf (rs-location new-state) new-location)
+                             (incf (rs-damage new-state) (edge-cost edge)))
+                            (t
+                             (incf (rs-damage new-state) (invalid-action-cost env))))))
                    ((pickup)
                     (let ((item (first parameters))
                           (object-hash (rs-object-locations new-state)))
@@ -321,7 +347,9 @@ or upper case.)"))
   (make-instance '<rescue-env>
     :nav-graph (make-graph '((0.0 0.0 :id node-1)
                              (0.0 1.0 :id node-2)
-                             (1.0 1.0 :id node-3))
-                           '((node-1 node-2)
-                             (node-2 node-3)))
+                             (1.0 1.0 :id node-3)
+                             (1.0 0.0 :id node-4))
+                           '((node-1 node-2) (node-1 node-4)
+                             (node-2 node-3)
+                             (node-4 node-1)))
     :home-node 'node-1))
