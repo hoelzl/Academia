@@ -87,13 +87,14 @@ return function(realm, me)
         end
         local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
         if lastanchor then
-            for key,val in pairs(prediction) do
+            for key,val in pairs(prediction or {}) do
                 if not (key == "class") and not (key == "meta") then
                     if feeling.features[key] and not (feeling.features[key] == val) then
                         lastanchor.appeal = lastanchor.appeal / 10
                         print("PREDICTION FAILED", key, feeling.features[key], val)
                         print("  changed appeal", lastanchor.appeal)
                     end
+                    prediction = {}
                 end
             end
         end

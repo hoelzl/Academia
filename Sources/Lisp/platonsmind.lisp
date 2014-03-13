@@ -9,7 +9,7 @@
 ;; TODO: Standard symbols for initialize-algorithms from package academia-env do not match literals in academia-prog
 ;; TODO: hordq-a-<n> with n > 1 throw errors
 
-(make-new-environment :medium)
+(make-new-environment :medium) ;;(make-rescue-env-0)
 (initialize-algorithms (list 'hordq-a-0 'hordq-a-1))
 (learn-behavior)
 
