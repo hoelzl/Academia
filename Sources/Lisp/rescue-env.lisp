@@ -21,7 +21,7 @@
 
 (defstruct robot
   (id (incf *robot-id-counter*))
-  (carriage nil)
+  (cargo nil)
   (damage 0))
 
 
@@ -30,25 +30,52 @@
 
 (defvar *object-id-counter* 0)
 
-(defstruct (world-object (:conc-name "OBJECT-")
+(defstruct (world-object (:type list)
+                         :named
+                         (:conc-name "OBJECT-")
                          (:constructor make-world-object
-                             (&key ((:id %id) (incf *object-id-counter*)))))
-  (%id (incf *object-id-counter*)))
+                             (&key ((:id %id) (incf *object-id-counter*))
+                                   location)))
+  (%id (incf *object-id-counter*))
+  (location))
 
-(defmethod object-id ((self world-object))
+(defmethod object-id ((self list))
   (object-%id self))
 
 
 ;;; Construction Material
 
-(defstruct (construction-material (:include world-object)))
+(defstruct (rubble (:type list)
+                   :named
+                   (:include world-object)
+                   (:constructor make-rubble (%id location))))
 
 
 ;;; Victims
 ;;; =======
 
-(defstruct (victim (:include world-object)))
+(defstruct (victim (:type list)
+                   :named
+                   (:include world-object)
+                   (:constructor make-victim (%id location health)))
+  (health 50))
 
+
+;;; Points
+;;; ======
+
+(defstruct (point (:constructor make-point (x y)))
+  (x 0.0 :type number)
+  (y 0.0 :type number))
+
+(defun distance (point-1 point-2)
+  (let* ((x1 (point-x point-1))
+         (x2 (point-x point-2))
+         (dx (- x1 x2))
+         (y1 (point-y point-1))
+         (y2 (point-y point-2))
+         (dy (- y1 y2)))
+    (sqrt (+ (* dx dx) (* dy dy)))))
 
 ;;; Nodes
 ;;; =====
@@ -57,10 +84,9 @@
 (defvar *node-id-counter* 0)
 
 (defstruct (node (:constructor make-node (x y &key (cost *default-node-cost*)
-                                                   (id (incf *node-id-counter*)))))
+                                                   (id (incf *node-id-counter*))))
+                 (:include point))
   id
-  (x 0.0 :type number)
-  (y 0.0 :type number)
   (cost *default-node-cost* :type number)
   (edges '())
   (graph nil :type (or null graph)))
@@ -83,22 +109,19 @@
   (setf (node-%objects node) new-value))
 
 (defmethod print-object ((self node) stream)
-  (print-unreadable-object (self stream :identity t :type t)
-    (format stream "~A: Edges ~A"
-            (node-id self)
-            (mapcar #'edge-id (node-edges self)))))
+  (if *print-readably*
+      (let ((*print-circle* t))
+        (call-next-method))
+      (print-unreadable-object (self stream :identity t :type t)
+        (format stream "~A; edges to: ~{~A~^, ~}"
+                (node-id self)
+                (sort (mapcar (compose #'node-id #'edge-to) (node-edges self)) #'less)))))
+
+(defmethod object-id ((node node))
+  (node-id node))
 
 (defun node-neighbors (node)
   (mapcar #'edge-to (node-edges node)))
-
-(defun node-distance (node-1 node-2)
-  (let* ((x1 (node-x node-1))
-         (x2 (node-x node-2))
-         (dx (- x1 x2))
-         (y1 (node-y node-1))
-         (y2 (node-y node-2))
-         (dy (- y1 y2)))
-    (sqrt (+ (* dx dx) (* dy dy)))))
 
 ;;; Edge
 ;;; ====
@@ -110,20 +133,24 @@
   id
   (from (make-node 0.0 0.0) :type node)
   (to (make-node 0.0 0.0) :type node)
-  (cost *default-edge-cost* :type number))
+  (cost 0 :type number))
 
-(defun make-edge (from to &key (cost *default-edge-cost*)
+(defun make-edge (from to &key (cost (+ *default-edge-cost* (distance from to)))
                                (id (incf *edge-id-counter*)))
   (let ((result (%make-edge id from to cost)))
     (push result (node-edges from))
     result))
 
 (defmethod print-object ((self edge) stream)
-  (print-unreadable-object (self stream :identity t :type t)
-    (format stream "~A: from ~A to ~A"
-            (edge-id self)
-            (node-id (edge-from self))
-            (node-id (edge-to self)))))
+  (if *print-readably*
+      (let ((*print-circle* t))
+        (call-next-method))
+      (print-unreadable-object (self stream :identity t :type t)
+        (format stream "~A cost ~3F from ~A to ~A"
+                (edge-id self)
+		(edge-cost self)
+                (node-id (edge-from self))
+                (node-id (edge-to self))))))
 
 #||
 (progn
@@ -157,12 +184,9 @@
 (defun edge-description-to-edge (graph edge-description)
   (if (edge-p edge-description)
       edge-description
-      (destructuring-bind (from to &key (cost *default-edge-cost*)
-                                        (id (incf *edge-id-counter*)))
+      (destructuring-bind (from to &rest keys)
           edge-description
-        (make-edge (find-node graph from)
-                   (find-node graph to)
-                   :cost cost :id id))))
+        (apply 'make-edge (find-node graph from) (find-node graph to) keys))))
 
 (defun make-graph (nodes edges)
   (let ((graph (%make-graph)))
@@ -174,70 +198,214 @@
     graph))
 
 #||
-(make-graph '((0.0 0.0 :id node-1) (0.0 1.0 :id node-2) (1.0 1.0 :id node-3))
-            '((node-1 node-2) (node-2 node-3)))
+(defparameter *graph*
+  (make-graph '((0.0 0.0 :id node-1) (0.0 1.0 :id node-2)
+                (1.0 1.0 :id node-3) (2.0 1.0 :id node-4)
+                (3.0 2.0 :id node-5) (3.0 3.0 :id node-6))
+              '((node-1 node-2) (node-2 node-1)
+                (node-2 node-3) (node-3 node-2)
+                (node-3 node-4) (node-4 node-3)
+                (node-2 node-4) (node-4 node-2)
+                (node-3 node-5) (node-5 node-3)
+                (node-3 node-6) (node-6 node-3))))
 ||#
+
+;;; A* Search
+;;; ---------
+
+(defstruct (search-node (:conc-name "SN-")
+                        (:constructor %make-search-node
+                            (location parent edge cost-from-start cost-to-goal)))
+  location
+  parent
+  edge
+  cost-from-start
+  cost-to-goal
+  total-cost
+  heap-index)
+
+(defun make-search-node (location parent edge cost-from-start cost-to-goal)
+  (let ((snode (%make-search-node location parent edge cost-from-start cost-to-goal)))
+    (setf (sn-total-cost snode)
+          (+ (sn-cost-from-start snode) (sn-cost-to-goal snode)))
+    snode))
+
+(defmethod print-object ((self search-node) stream)
+  (print-unreadable-object (self stream :type t :identity t)
+    (format stream "~A" (node-id (sn-location self)))))
+
+(defun build-path (search-node &optional (end-segment '()) (cost 0))
+  "Return the path from the start node of the search to the goal node
+represented by SEARCH-NODE.  Returns the cost of this path as second
+value; the cost takes the node-costs of all nodes visited during the
+path into account.  (This does not include the goal node since its
+cost is encountered after the path is completed."
+  (let ((edge (sn-edge search-node)))
+    (if (null edge)
+	(values end-segment cost)
+	(build-path (sn-parent search-node)
+		    (cons edge end-segment)
+		    (+ cost (edge-cost edge) (node-cost (sn-location search-node)))))))
+
+(defun a*-search (graph start-node goal-node-or-nodes
+                  &optional (path-cost-estimate
+			     (if (consp goal-node-or-nodes)
+				 (lambda (start-node goal-nodes)
+				   (apply #'min
+					  (mapcar (curry #'distance start-node) goal-nodes)))
+				 #'distance)))
+  (declare (optimize debug (speed 0) (compilation-speed 0)))
+  (setf start-node (find-node graph start-node))
+  (cond ((atom goal-node-or-nodes)
+	 (setf goal-node-or-nodes (find-node graph goal-node-or-nodes))
+	 (check-type goal-node-or-nodes node))
+	(t
+	 (setf goal-node-or-nodes (mapcar (curry #'find-node graph) goal-node-or-nodes))
+	 (check-type goal-node-or-nodes (or null (cons node)))))
+  (let ((open (make-instance 'fibonacci-heap :key 'sn-total-cost))
+	(closed '()))
+    (labels ((push-open (snode)
+	       (check-type snode search-node)
+	       (multiple-value-bind (sn heap-index) (add-to-heap open snode)
+		 (declare (ignore sn))
+		 (setf (sn-heap-index snode) heap-index)))
+	     (pop-open ()
+	       (let ((result (pop-heap open)))
+		 (check-type result search-node)
+		 result))
+	     (sn-member (snode nodes)
+	       (check-type snode search-node)
+	       (check-type nodes (or null (cons node)))
+	       (member snode nodes :test (lambda (n g) (eql (sn-location n) g))))
+	     (goalp (snode)
+	       (if (consp goal-node-or-nodes)
+		   (sn-member snode goal-node-or-nodes)
+		   ;; goal-node is a single node
+		   (progn
+		     (check-type snode search-node)
+		     (eql (sn-location snode) goal-node-or-nodes))))
+	     (find-target-snode (edge)
+	       (let ((node (edge-to edge)))
+		 ;; Hack, since cl-heap does not expose a way to iterate over priority heaps
+		 (cl-heap::do-each-node (heap-node (slot-value open 'cl-heap::root))
+		   (let ((snode (cl-heap::node-item heap-node)))
+		     (when (eql (sn-location snode) node)
+		       (return-from find-target-snode (values snode :open)))))
+		 (dolist (snode closed)
+		   (when (eql (sn-location snode) node)
+		     (return-from find-target-snode (values snode :closed))))
+		 (values nil nil))))
+      (push-open (make-search-node start-node nil nil 0
+				   (funcall path-cost-estimate start-node goal-node-or-nodes)))
+      (while (not (is-empty-heap-p open))
+	(let ((snode (pop-open)))
+	  (if (goalp snode)
+	      (return-from a*-search snode)
+	      (dolist (edge (node-edges (sn-location snode)))
+		(let* ((new-cost-from-start (+ (sn-cost-from-start snode) (edge-cost edge)))
+		       (new-cost-estimate
+			 (funcall path-cost-estimate (edge-to edge) goal-node-or-nodes)))
+		  (multiple-value-bind (new-snode open/closed) (find-target-snode edge)
+		    (if new-snode
+			(when (> (sn-cost-from-start new-snode) new-cost-from-start)
+			  (let* ()
+			    (setf (sn-parent new-snode) snode
+				  (sn-edge new-snode) edge
+				  (sn-cost-from-start snode) new-cost-from-start
+				  (sn-cost-to-goal snode) new-cost-estimate
+				  (sn-total-cost snode) (+ new-cost-from-start new-cost-estimate))
+			    (ecase open/closed
+			      (:open
+			       (decrease-key open (sn-heap-index new-snode) new-cost-from-start))
+			      (:closed
+			       (setf closed (remove new-snode closed))))))
+			(progn
+			  (setf new-snode (make-search-node (edge-to edge)
+							    snode
+							    edge
+							    new-cost-from-start
+							    new-cost-estimate))
+			  (push-open new-snode)))))))
+	  (push snode closed)))
+      nil)))
+
+#||
+(sn-total-cost (a*-search *graph* 'node-1 'node-5))
+(sn-total-cost (a*-search *graph* 'node-1 '(node-4 node-5 node-5)))
+
+(build-path (a*-search *graph* 'node-1 'node-5))
+(build-path (a*-search *graph* 'node-1 '(node-4 node-5 node-5)))
+||#
+
 
 ;;; Rescue State
 ;;; ============
 
 (defstruct (rescue-state (:conc-name #:rs-))
+  ;; The location of the current robot
   (location nil :type node)
-  (carriage nil)
+  ;; The cargo the robot is currently carrying
+  (cargo nil)
+  ;; The damage the robot has taken so far
   (damage 0 :type number)
-  ;; List of nodes in which robots are located
-  ;; (robot-locations (make-hash-table))
-  (victim-health (make-hash-table))
-  (object-locations (make-hash-table)))
+  ;; Nodes in which other robots are located
+  (robot-locations '())
+  ;; Data of WORLD-OBJECTs that can be picked up
+  (objects '()))
 
 
 (defmethod clone ((state rescue-state))
   (make-rescue-state
-   ;; :robot-locations (copy-hash-table (rs-robot-locations state))
    :location (rs-location state)
-   :carriage (rs-carriage state)
+   :cargo (rs-cargo state)
    :damage (rs-damage state)
-   :object-locations (copy-hash-table (rs-object-locations state))
-   :victim-health (copy-hash-table (rs-victim-health state))))
+   :robot-locations (rs-robot-locations state)
+   :objects (rs-objects state)))
 
 (defmethod same ((lhs rescue-state) (rhs rescue-state))
   (or (eql lhs rhs)
-      (every (lambda (f) (funcall f lhs rhs))
-             '(rs-location rs-carriage rs-damage rs-object-locations
-               rs-victim-health))))
+      (every (lambda (f) (equalp (funcall f lhs) (funcall f rhs)))
+             '(rs-location rs-cargo rs-damage rs-robot-locations
+               rs-objects))))
 
 (defmethod canonicalize ((state rescue-state))
-  (list 'location (rs-location state)
-        ;; 'robot-locations (hash-to-alist (rs-robot-locations state))
-        'location (hash-to-alist (rs-location state))
-        'damage (hash-to-alist (rs-damage state))
-        'object-location (hash-to-alist (rs-object-locations state))
-        'victim-health (hash-to-alist (rs-victim-health state))))
+  (list :location (rs-location state)
+        :cargo (rs-cargo state)
+        :damage (rs-damage state)
+        :robot-locations (rs-robot-locations state)
+        :objects (rs-objects state)))
 
 ;;; The variable *PRINT-GRAPHICALLY* is defined in env.lisp.
 
 (defmethod print-object ((state rescue-state) stream)
-  (if *print-graphically*
-      (let ((node (rs-location state)))
-        (format stream "~&State:~12T~A, carrying ~:[nothing~;~:*~A~], damage ~A~%"
-                (node-id node)
-                (rs-carriage state)
-                (rs-damage state))
-        (format stream "Neighbors:~12T~{~A~^, ~}~%"
-                (mapcar #'node-id (node-neighbors node))))
-      (print-unreadable-object (state stream :type t :identity t)
-        (format stream "~A; carriage: ~A, dammage: ~A"
-                (node-id (rs-location state))
-                (rs-carriage state) (rs-damage state)))))
+  (if *print-readably*
+      (let ((*print-circle* t))
+        (call-next-method))
+      (if *print-graphically*
+          (let ((node (rs-location state)))
+            (format stream "~&State:~12T~A, carrying ~:[nothing~;~:*~A~], damage ~A~%"
+                    (node-id node)
+                    (rs-cargo state)
+                    (rs-damage state))
+            (format stream "Neighbors:~12T~{~A~^, ~}~%"
+                    (sort (mapcar #'node-id (node-neighbors node)) #'less))
+            (format stream "Victims:~12T~{~A~^, ~}~%"
+                    (mapcar (lambda (v) (list (object-id v)
+                                              (object-id (object-location v))
+                                              (victim-health v)))
+                            (remove-if-not #'victim-p (rs-objects state))))
+            (format stream "Rubble:~12T~{~A~^, ~}~%"
+                    (mapcar (lambda (v) (list (object-id v)
+                                              (object-id (object-location v))))
+                            (remove-if-not #'rubble-p (rs-objects state)))))
+          (print-unreadable-object (state stream :type t :identity t)
+            (format stream "~A;~:[~; cargo: ~:*~A,~] dammage: ~A"
+                    (node-id (rs-location state))
+                    (rs-cargo state) (rs-damage state))))))
 
 (defun node-objects (state node)
-  (let ((object-hash (rs-object-locations state))
-        (result '()))
-    (flet ((find-result (obj obj-node)
-             (when (eql node obj-node)
-               (push obj result))))
-      (maphash #'find-result object-hash))
-    result))
+  (let ((object-alist (rs-objects state)))
+    (remove node object-alist :test-not #'eql :key #'second)))
 
 (defclass <rescue-env> (<fully-observable-env>)
   ((nav-graph :accessor nav-graph :initarg :nav-graph
@@ -270,18 +438,25 @@
           (node-2 (find-node *re-graph* 'node-2))
           (node-3 (find-node *re-graph* 'node-3)))
       (make-rescue-state :location node-1
-                         :object-locations (alist-to-hash
-                                            `((v1 . ,node-1) (v2 . ,node-2) (m1 . ,node-1))))))
+                         :objects (list
+                                   (make-victim 'v1 node-1 24)
+                                   (make-victim 'v2 node-2 71)
+                                   (make-rubble 'r1 node-1)))))
 
   (defparameter *re*
-    (make-instance '<rescue-env> :nav-graph *re-graph* :home-node (find-node *re-graph* 'node-3))))
+    (make-instance '<rescue-env>
+      :nav-graph *re-graph*
+      :home-node (find-node *re-graph* 'node-3))))
+
+#+ (or)
+(sample-next *re* (sample-next *re* *rs* '(pickup m1)) '(go node-3))
 ||#
 
 (defmethod avail-actions ((env <rescue-env>) (state rescue-state))
   (let* ((node (rs-location state))
          (go-actions (mapcar (lambda (node) `(go ,(node-id node)))
                              (mapcar #'edge-to (node-edges node))))
-         (pickup-actions (mapcar (lambda (obj) `(pickup ,(object-id obj)))
+         (pickup-actions (mapcar (lambda (obj) `(pickup ,(object-id (first obj))))
                                  (node-objects state node))))
     (append '(nop) go-actions pickup-actions)))
 
@@ -296,12 +471,12 @@
         (incf (rs-damage new-state) (node-cost (rs-location state)))
         (cond ((eql action 'nop))
               ((eql action 'drop)
-               (let ((carriage (rs-carriage new-state)))
-                 (assert carriage ()  "No carriage?")
-                 (when carriage
-                   (setf (gethash carriage (rs-object-locations new-state))
+               (let ((cargo (rs-cargo new-state)))
+                 (assert cargo ()  "No cargo?")
+                 (when cargo
+                   (setf (gethash cargo (rs-objects new-state))
                          (rs-location new-state))
-                   (setf (rs-carriage new-state) nil))))
+                   (setf (rs-cargo new-state) nil))))
               (t
                (destructuring-bind (action-type &rest parameters) action
                  (ecase action-type
@@ -317,9 +492,9 @@
                              (incf (rs-damage new-state) (invalid-action-cost env))))))
                    ((pickup)
                     (let ((item (first parameters))
-                          (object-hash (rs-object-locations new-state)))
-                      (unless (rs-carriage new-state)
-                        (setf (rs-carriage new-state) item)
+                          (object-hash (rs-objects new-state)))
+                      (unless (rs-cargo new-state)
+                        (setf (rs-cargo new-state) item)
                         (remhash item object-hash))))))))
         new-state)))
 
@@ -330,8 +505,8 @@
          (node-3 (find-node graph 'node-3)))
     (make-rescue-state
      :location node-1
-     :victim-health (alist-to-hash '((v1 . 24)))
-     :object-locations (alist-to-hash `((v1 . ,node-2) (obj-1 . ,node-3))))))
+     :objects (list (make-victim 'v1 node-2 24)
+                    (make-rubble 'r1 node-3)))))
 
 (defmethod io-interface :before ((env <rescue-env>))
   (format t "~&Welcome to the \"academia\" robotic rescue example.

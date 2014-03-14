@@ -5,10 +5,14 @@
         ;; #:hexameter
         ;; From ALisp
         #:utils
+        #:academia-utils
+        #:cl-heap
         #:direct-product-set
         #:prob
         #:create-env
         #:grid-world)
+  (:import-from #:alexandria
+		#:compose #:curry #:rcurry)
   (:nicknames :ae)
   (:export
    ;; Algorithm info

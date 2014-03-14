@@ -5,5 +5,6 @@
         ;; From ALisp
         #:utils
         #:exploration-policy)
-  (:export #:<epsilon-policy>))
+  (:export #:<epsilon-policy>
+           #:less))
 
