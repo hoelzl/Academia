@@ -40,6 +40,7 @@ return function(realm, me)
     local function interpret(plan, body, feeling)
         local best = {}
         local bestappeal = -10000
+        local bestanchor = {}
         for p,particle in ipairs(plan) do
             if particle.class == "anchor" then
                 local matching = true
@@ -49,7 +50,7 @@ return function(realm, me)
                     end
                 end
                 if matching then
-                    if particle.appeal and particle.appeal > bestappeal then
+                    if not (lastanchor == particle) and particle.appeal and particle.appeal > bestappeal and rand() > 0.2 then
                         local path = {}
                         local i = p
                         local releasing = false
@@ -70,18 +71,20 @@ return function(realm, me)
                             end
                             i = i + 1
                         end
-                        lastanchor = particle
                         best = path
                         bestappeal = particle.appeal
+                        bestanchor = particle
                     end
                 end
             end
         end
+        lastanchor = bestanchor
         return best
     end
     return function(clock, body)
         local newplan = hexameter.ask("qry", realm, "sensors", {{body=body, type="listen"}})[1].value
         if newplan then
+            --plan = newplan
             plan = merge(plan, newplan)
             hexameter.tell("put", realm, "motors", {{type="forget", body=body}})
         end

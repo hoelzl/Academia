@@ -7,6 +7,6 @@ echo "+------------------------------------------------------------------------+
 echo
 echo "Now running Platon's mind..."
 echo
-sbcl --load ../Sources/Lisp/platonsmind.lisp --end-toplevel-options localhost:55559
+sbcl --load ../Sources/Lisp/platonsmindrescue.lisp --end-toplevel-options localhost:55559
 # script doesn't work because then we cannot laod any library, but maybe we can fix this in the future
 #sbcl --script ../Sources/Lisp/platonsmind.lisp

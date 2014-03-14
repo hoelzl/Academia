@@ -17,8 +17,7 @@ end
 
 local function getnode(x, y)
     if type(x) == "table" then
-        x = x.x
-        y = x.y
+        x, y = x.x, x.y
     end
     if graph.nodes[x] then
         return graph.nodes[x][y]
@@ -28,8 +27,7 @@ end
 
 local function getedges(x, y)
     if type(x) == "table" then
-        x = x.x
-        y = x.y
+        x, y = x.x, x.y
     end
     if graph.edges[x] then
         return graph.edges[x][y] or {}
@@ -78,12 +76,56 @@ local function makeobject(x, y, object)
     graph.nodes[x][y].objects[object.id] = object
 end
 
+local homes = {}
+
+local function makehome(x, y)
+    homes[x] = homes[x] or {}
+    homes[x][y] = true
+end
+
+local function ishome(x, y)
+    if homes[x] and homes[x][y] then
+        return "yes"
+    else
+        return "no"
+    end
+end
+
+local labels = {}
+
+local function label(x, y, name)
+    labels[name] = {x = x, y = y}
+end
+
+local function lookup(name)
+    if labels[name] and labels[name].x and labels[name].y and graph.nodes[labels[name].x] then
+        return graph.nodes[labels[name].x][labels[name].y]
+    end
+    return nil
+end
+
 
 --static world setup
 
-makenode(0, 0)
-makenode(1, 1)
-makeedge(getnode(0,0), getnode(1,1), 1)
+makenode(0, 0); label(0, 0, "1")
+makenode(0, 1); label(0, 1, "2")
+makenode(1, 0); label(1, 0, "4")
+makenode(1, 1); label(1, 1, "3")
+
+makeedge(getnode(0,0), getnode(0,1), 1)
+makeedge(getnode(0,1), getnode(0,0), 1)
+
+makeedge(getnode(0,0), getnode(1,0), 1)
+makeedge(getnode(1,0), getnode(0,0), 1)
+
+makeedge(getnode(0,1), getnode(1,1), 1)
+makeedge(getnode(1,1), getnode(0,1), 1)
+
+makeobject(0, 1, {class="victim", id="v1"})
+makeobject(1, 1, {class="rubble", id="r1"})
+
+makehome(0, 0)
+
 
 
 --pretty print utility
@@ -154,7 +196,11 @@ local guts = {
         return {
             goal = me.state.goal or "live",
             features = {
-                position = me.state.position
+                --position = me.state.position,
+                x = me.state.position.x,
+                y = me.state.position.y,
+                ontarget = ishome(me.state.position.x, me.state.position.y),
+                cargo = me.state.carriage and me.state.carriage.id or "nil"
             }
         }
     end
@@ -172,8 +218,8 @@ local forget = {
     end
 }
 
-local procrastinate = {
-    type = "procrastinate",
+local nop = {
+    type = "nop",
     class = "motor",
     run = function (me, world, control)
         me.state.damage = (me.state.damage or 0) + (me.state.position.cost or 0)
@@ -184,14 +230,19 @@ local procrastinate = {
 local shout = {
     type = "shout",
     class = "motor",
-    run = function(me, _, control)
+    run = function(me, world, control)
+        if not control or not control.content then
+            return me
+        end
         if control.name and world[control.name] then
             world[control.name].state.attention = control.content
         else
-            for _,name in pairs(tartaros.sensor(me, "spot")) do
-                if tartaros.can(world[name], listen) then
+            for name,body in pairs(world) do
+            --for _,name in pairs(tartaros.sensor(me, "spot")) do
+            --    if tartaros.can(world[name], listen) then
                     world[name].state.attention = control.content
-                end
+            --    end
+            --end
             end
         end
         return me
@@ -202,6 +253,9 @@ local go = {
     type = "go",
     class = "motor",
     run = function(me, world, control)
+        if not (type(control.to) == "table") then
+            control.to = lookup(tostring(control.to))
+        end
         if (type(control.to) == "table") and control.to.x and control.to.y then
             local target = getnode(control.to)
             local route = getedge(me.state.position, target)
@@ -265,13 +319,13 @@ world.observer = {
 world.platon = {
     name = "platon",
     sensors = {result, spot, guts},
-    motors = {shout, procrastinate},
+    motors = {shout, nop},
     state = {
         position = getnode(1,1) --TODO: this needs ot match an actual node in the world
     },
     psyche = function(realm, me)
         local ultimateplan = {
-            {type = "procrastinate", control = {}}
+            {type = "nop", control = {}}
         }
         return function(clock, body)
             if clock == 1 then
@@ -305,7 +359,7 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {forget, go, pickup, drop, procrastinate},
+    motors = {forget, go, pickup, drop, nop},
     state = {
         position = getnode(0,0),
         damage = 0,
