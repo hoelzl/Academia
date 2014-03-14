@@ -86,6 +86,38 @@
    #:at-source
    #:at-dest
 
+   ;; The rescue scenario
+   #:graph #:make-graph #:graph-nodes #:graph-edges
+   #:find-node
+   #:robot #:make-robot #:robot-id #:robot-cargo #:robot-damage
+   #:world-object #:make-world-object #:object-id #:object-location
+   #:rubble #:make-rubble
+   #:victim #:make-victim #:victim-health
+   #:point #:make-point #:point-x #:point-y #:distance
+   #:node #:make-node #:node-id #:node-cost #:node-edges #:node-graph #:node-neighbors
+   #:edge #:make-edge #:edge-id #:edge-from #:edge-to #:edge-cost
+   #:search-node #:make-search-node #:sn-location #:sn-parent #:sn-edge
+   #:sn-cost-from-start #:sn-cost-to-goal #:sn-total-cost #:sn-heap-index
+   #:build-path #:a*-search
+
+   ;; Rescue states
+   #:rescue-state #:make-rescue-state
+   #:rs-location #:rs-cargo #:rs-damage #:rs-robot-locations #:rs-objects
+   #:rs-actions
+   #:node-objects
+
+   ;; The rescue environment
+   #:<rescue-env>
+   #:nav-graph #:home-node #:max-damage #:invalid-action-cost
+
+   #:make-rescue-env-0
+   #:make-rescue-env-1
+   #:make-rescue-env-2
+   #:make-rescue-env-3
+   #:make-rescue-env-4
+   #:make-rescue-env-5
+   #:make-rescue-env-6
+
    ;; Algorithm names
    #:smdpq
    #:hordq

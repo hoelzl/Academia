@@ -385,7 +385,7 @@ cost is encountered after the path is completed."
           (let ((node (rs-location state)))
             (format stream "~&State:~12T~A, carrying ~:[nothing~;~:*~A~], damage ~A~%"
                     (node-id node)
-                    (rs-cargo state)
+                    (object-id (rs-cargo state))
                     (rs-damage state))
             (format stream "Neighbors:~12T~{~A~^, ~}~%"
                     (sort (mapcar #'node-id (node-neighbors node)) #'less))
@@ -403,6 +403,17 @@ cost is encountered after the path is completed."
                     (node-id (rs-location state))
                     (rs-cargo state) (rs-damage state))))))
 
+(defun rs-actions (state)
+  (let* ((node (rs-location state))
+         (go-actions (mapcar (lambda (node) `(go ,(node-id node)))
+                             (mapcar #'edge-to (node-edges node))))
+         (pickup-actions (mapcar (lambda (obj) `(pickup ,(object-id (first obj))))
+                                 (node-objects state node))))
+    (append '(nop) go-actions pickup-actions)))
+
+
+;;; The Environment
+;;; ===============
 (defun node-objects (state node)
   (let ((object-alist (rs-objects state)))
     (remove node object-alist :test-not #'eql :key #'second)))
@@ -453,16 +464,16 @@ cost is encountered after the path is completed."
 ||#
 
 (defmethod avail-actions ((env <rescue-env>) (state rescue-state))
-  (let* ((node (rs-location state))
-         (go-actions (mapcar (lambda (node) `(go ,(node-id node)))
-                             (mapcar #'edge-to (node-edges node))))
-         (pickup-actions (mapcar (lambda (obj) `(pickup ,(object-id (first obj))))
-                                 (node-objects state node))))
-    (append '(nop) go-actions pickup-actions)))
+  (declare (ignorable env))
+  (rs-actions state))
 
 (defmethod is-terminal-state ((env <rescue-env>) (state rescue-state))
   (let ((max-damage (max-damage env)))
     (and max-damage (> (rs-damage state) max-damage))))
+
+(defun rescue-reward (env state action new-state)
+  (declare (ignore env action new-state))
+  (- (node-cost (rs-location state))))
 
 (defmethod sample-next ((env <rescue-env>) (state rescue-state) action)
   (if (is-terminal-state env state)
@@ -472,11 +483,11 @@ cost is encountered after the path is completed."
         (cond ((eql action 'nop))
               ((eql action 'drop)
                (let ((cargo (rs-cargo new-state)))
-                 (assert cargo ()  "No cargo?")
                  (when cargo
-                   (setf (gethash cargo (rs-objects new-state))
-                         (rs-location new-state))
-                   (setf (rs-cargo new-state) nil))))
+		   (let ((new-obj (clone cargo)))
+		     (setf (object-location new-obj) (rs-location new-state))
+		     (push new-obj (rs-objects new-state))
+		     (setf (rs-cargo new-state) nil)))))
               (t
                (destructuring-bind (action-type &rest parameters) action
                  (ecase action-type
@@ -491,12 +502,13 @@ cost is encountered after the path is completed."
                             (t
                              (incf (rs-damage new-state) (invalid-action-cost env))))))
                    ((pickup)
-                    (let ((item (first parameters))
-                          (object-hash (rs-objects new-state)))
+                    (let* ((item-id (first parameters))
+			   (item (find item-id (rs-objects state) :key #'object-id)))
                       (unless (rs-cargo new-state)
                         (setf (rs-cargo new-state) item)
-                        (remhash item object-hash))))))))
-        new-state)))
+                        (setf (rs-objects new-state)
+			      (remove item (rs-objects state))))))))))
+        (values new-state (rescue-reward env state action new-state)))))
 
 (defmethod sample-init ((env <rescue-env>))
   (let* ((graph (nav-graph env))
@@ -516,7 +528,8 @@ victims and deliver them to a drop-off zone.  You can move to a neighbor node by
 <NODE>); if the robot is on the same node as an object or a victim you can pick it up by
 entering (PICKUP <OBJECT>), if you are in the drop-off zone you can drop the object (and collect
 the reward) by entering DROP.  To quit the environment, enter NIL.  (All input can be in lower
-or upper case.)"))
+or upper case.)")
+  (setf *print-graphically* t))
 
 (defun make-rescue-env-0 ()
   (make-instance '<rescue-env>
