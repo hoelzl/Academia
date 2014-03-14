@@ -38,7 +38,7 @@ local function getedges(x, y)
 end
 
 local function getedge(from, to)
-    if not from.x or not from.y or not to.x or not to.y then
+    if not from or not to or not from.x or not from.y or not to.x or not to.y then
         return false
     end
     if graph.edges[from.x] and graph.edges[from.x][from.y] and graph.edges[from.x][from.y][to.x] then
@@ -57,6 +57,25 @@ local function makeedge(from, to, cost)
     graph.edges[from.x][from.y][to.x] = graph.edges[from.x][from.y][to.x] or {}
     graph.edges[from.x][from.y][to.x][to.y] = newedge
     return newedge
+end
+
+local counters = {}
+
+local function makeobject(x, y, object)
+    if not x or not y or not graph.nodes[x] or not graph.nodes[x][y] then
+        return false
+    end
+    if not graph.nodes[x][y].objects then
+        graph.nodes[x][y].objects = {}
+    end
+    if not object.class then
+        object.class = "object"
+    end
+    if not object.id then
+        counters[object.class] = counters[object.class] and (counters[object.class] + 1) or 1
+        object.id = object.class.."-"..counters[object.class]
+    end
+    graph.nodes[x][y].objects[object.id] = object
 end
 
 
@@ -236,6 +255,13 @@ local drop = {
 
 --world definition
 
+world.observer = {
+    name = "observer",
+    sensors = {},
+    motors = {},
+    state = {},  
+}
+
 world.platon = {
     name = "platon",
     sensors = {result, spot, guts},
@@ -314,7 +340,7 @@ metaworld.charon = {
             recycle = true --NOTE: You can only recycle Hexameter components!
         }
     },
-    --avatar = "observ",
+    avatar = "observer",
     hexameter = {
         socketcache = 10
     }

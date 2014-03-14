@@ -9,7 +9,7 @@
 ;; TODO: Standard symbols for initialize-algorithms from package academia-env do not match literals in academia-prog
 ;; TODO: hordq-a-<n> with n > 1 throw errors
 
-(make-new-environment :medium) ;;(make-rescue-env-0)
+(make-new-environment :waste :medium) ;;(make-rescue-env-0)
 (initialize-algorithms (list 'hordq-a-0 'hordq-a-1))
 (learn-behavior)
 
@@ -75,6 +75,7 @@
 
   (defmethod spondeios:handle ((self logic-space) msgtype author space parameter
                                &optional recipient)
+    (format t "PROCESSING~%")
     (cond ((string= space "charon.halt")
            (progn
              (setf apocalypse t)
@@ -91,6 +92,7 @@
                                     :control (item :content knowledge-lesson))))))
             t))
           ((string= space "plan")
+           (format t "ANSWER~%")
            (values
             (list (item :answer (list (item :type "shout" :control (item :content plan)))))
             t))
