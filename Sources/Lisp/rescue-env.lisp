@@ -409,16 +409,21 @@ cost is encountered after the path is completed."
   (let* ((node (rs-location state))
          (go-actions (mapcar (lambda (node) `(go ,(node-id node)))
                              (mapcar #'edge-to (node-edges node))))
-         (pickup-actions (mapcar (lambda (obj) `(pickup ,(object-id (first obj))))
-                                 (node-objects state node))))
-    (append '(nop) go-actions pickup-actions)))
+         (pickup-actions (mapcar (lambda (obj) `(pickup ,(object-id obj)))
+                                 (node-objects state node)))
+         (drop-action (if (rs-cargo state) '(drop) '()))
+         (result (append '(nop) go-actions pickup-actions drop-action)))
+    result))
 
 
 ;;; The Environment
 ;;; ===============
+
 (defun node-objects (state node)
-  (let ((object-alist (rs-objects state)))
-    (remove node object-alist :test-not #'eql :key #'second)))
+  (let ((objects (rs-objects state)))
+    (remove-if (lambda (obj)
+                 (not (eql (object-location obj) node)))
+               objects)))
 
 (defclass <rescue-env> (<fully-observable-env>)
   ((nav-graph :accessor nav-graph :initarg :nav-graph
@@ -426,30 +431,29 @@ cost is encountered after the path is completed."
    (home-node :accessor home-node :initarg :home-node
               :initform (required-initarg :home-node))
    (max-damage :accessor max-damage :initarg :max-damage
-               :initform nil)
+               :initform 500)
    (invalid-action-cost :accessor invalid-action-cost :initarg :invalid-action-cost
                         :initform 2.0)))
 
 
-(defmethod initialize-instance :after ((self <rescue-env>) &key)
-  (let ((home-node (home-node self)))
-    (unless (node-p home-node)
-      (setf (home-node self)
-            (find-node (nav-graph self) home-node)))))
+(defmethod initialize-instance :around ((self <rescue-env>) &key home-node nav-graph)
+  (call-next-method self
+                    :home-node (find-node nav-graph home-node)
+                    :nav-graph nav-graph))
 
 #||
 (progn
   (defparameter *re-graph*
-    (make-graph '((0.0 0.0 :id node-1)
-                  (0.0 1.0 :id node-2)
-                  (1.0 1.0 :id node-3)
-                  (1.0 0.0 :id node-4))
-                '((node-1 node-2) (node-1 node-4) (node-2 node-3) (node-4 node-1))))
+    (make-graph '((0.0 0.0 :id 1)
+                  (0.0 1.0 :id 2)
+                  (1.0 1.0 :id 3)
+                  (1.0 0.0 :id 4))
+                '((1 2) (1 4) (2 3) (4 1))))
 
   (defparameter *rs*
-    (let ((node-1 (find-node *re-graph* 'node-1))
-          (node-2 (find-node *re-graph* 'node-2))
-          (node-3 (find-node *re-graph* 'node-3)))
+    (let ((node-1 (find-node *re-graph* 1))
+          (node-2 (find-node *re-graph* 2))
+          (node-3 (find-node *re-graph* 3)))
       (make-rescue-state :location node-1
                          :objects (list
                                    (make-victim 'v1 node-1 24)
@@ -459,7 +463,7 @@ cost is encountered after the path is completed."
   (defparameter *re*
     (make-instance '<rescue-env>
       :nav-graph *re-graph*
-      :home-node (find-node *re-graph* 'node-3))))
+      :home-node (find-node *re-graph* 3))))
 
 #+ (or)
 (sample-next *re* (sample-next *re* *rs* '(pickup m1)) '(go node-3))
@@ -474,8 +478,16 @@ cost is encountered after the path is completed."
     (and max-damage (> (rs-damage state) max-damage))))
 
 (defun rescue-reward (env state action new-state)
-  (declare (ignore env action new-state))
-  (- (node-cost (rs-location state))))
+  (let* (; (graph (nav-graph env))
+         (from (rs-location state))
+         (to (rs-location new-state))
+         (edge (find to (node-edges from) :key #'edge-to))
+         (reward (if (and (same (rs-location new-state) (home-node env))
+                          (eql action 'drop))
+                     1000
+                     0)))
+    (+ reward (- (node-cost (rs-location state))
+                 (if edge (edge-cost edge) (invalid-action-cost env))))))
 
 (defmethod sample-next ((env <rescue-env>) (state rescue-state) action)
   (if (is-terminal-state env state)
@@ -494,7 +506,6 @@ cost is encountered after the path is completed."
                (destructuring-bind (action-type &rest parameters) action
                  (ecase action-type
                    ((go)
-                    ;; TODO: should we add additional damage for taking invalid choices?
                     (let* ((new-location (find-node (nav-graph env) (first parameters)))
                            (edge (find new-location (node-edges (rs-location state))
                                        :key 'edge-to)))
@@ -514,14 +525,14 @@ cost is encountered after the path is completed."
 
 (defmethod sample-init ((env <rescue-env>))
   (let* ((graph (nav-graph env))
-         (node-1 (find-node graph 1))
+         ;; (node-1 (find-node graph 1))
          (node-2 (find-node graph 2))
          (node-3 (find-node graph 3)))
     (make-rescue-state
-     :location node-1
-     :target-locations (list node-1)
-     :objects (list (make-victim 'v1 node-2 24)
-                    (make-rubble 'r1 node-3)))))
+     :location (home-node env)
+     :target-locations (list (home-node env))
+     :objects (list (make-victim :v1 node-2 24)
+                    (make-rubble :r1 node-3)))))
 
 (defmethod env:io-interface :before ((env <rescue-env>))
   (format t "~&Welcome to the \"academia\" robotic rescue example.
@@ -531,7 +542,7 @@ victims and deliver them to a drop-off zone.  You can move to a neighbor node by
 <NODE>); if the robot is on the same node as an object or a victim you can pick it up by
 entering (PICKUP <OBJECT>), if you are in the drop-off zone you can drop the object (and collect
 the reward) by entering DROP.  To quit the environment, enter NIL.  (All input can be in lower
-or upper case.)")
+or upper case.)~2%")
   (setf *print-graphically* t))
 
 (defun make-rescue-env-0 ()
@@ -540,5 +551,7 @@ or upper case.)")
                              (0.0 1.0 :id 2)
                              (1.0 1.0 :id 3)
                              (1.0 0.0 :id 4))
-                           '((1 2) (1 4) (2 3) (4 1)))
+                           '((1 2) (2 1)
+                             (1 4) (4 1)
+                             (2 3) (3 2)))
     :home-node 1))

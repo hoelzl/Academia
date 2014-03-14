@@ -43,6 +43,7 @@
     ((:maze :labyrinth) 2500)))
 
 (defun max-steps-per-episode ()
+  #+ (or)
   (let ((base-size
           (ecase *environment-type*
             ((:hades) most-positive-fixnum)
@@ -57,7 +58,8 @@
             ((:large) (if *use-complex-environment*  500 250))
             ((:maze :labyrinth) (if (eq *exploration-strategy* :random)
                                      50 25)))))
-    (* base-size *step-number-multiplier*)))
+    (* base-size *step-number-multiplier*))
+  1000)
 
 
 (defun initialize-environment (&optional (force t))
@@ -68,7 +70,7 @@
   (initialize-environment (not recreate))
   (env:io-interface *environment*))
 
-(defparameter *hordq-learning-rate* 0.02)
+(defparameter *hordq-learning-rate* 0.1)
 (defparameter *hordq-discount* 1)
 
 (defun hordq-featurizer-for (algorithm kind)
@@ -173,7 +175,7 @@
      (learn program *environment* 'random
             (coerce (algorithms) 'list)
             (* (max-steps-per-episode) (number-of-episodes))
-            :hist-length 100 :step-print-inc 1000 :episode-print-inc 250))
+            :hist-length 100 :step-print-inc 1000 :episode-print-inc 100))
     (otherwise
      (format t "~&Learning behavior using exploration strategy ~A~%"
              exploration-strategy)
@@ -183,7 +185,7 @@
                    (pick-exploration-strategy ad exploration-strategy)
                    (ad-algorithm ad)
                    (* (max-steps-per-episode) (number-of-episodes))
-                   :hist-length 100 :step-print-inc 1000 :episode-print-inc 250))
+                   :hist-length 100 :step-print-inc 1000 :episode-print-inc 100))
           (algorithm-descriptions)))))
 
 (defparameter *evaluation-steps* 50)

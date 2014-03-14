@@ -8,7 +8,7 @@
           (rs-target-locations env-state)))
 
 (def-feature cargo-feature (state action)
-  (rs-cargo env-state))
+  (object-id (rs-cargo env-state)))
 
 (def-feature damage-feature (state action)
   (rs-damage env-state))
@@ -23,9 +23,9 @@
   (make-3partq-featurizer
    ()
    (random-action-choice
-    (:qr-dependes choice location-feature at-target-location cargo-feature)
-    (:qc-dependes choice location-feature at-target-location cargo-feature)
-    (:qe-dependes choice location-feature at-target-location cargo-feature))))
+    (:qr-depends choice location-feature at-target-location cargo-feature)
+    (:qc-depends choice location-feature at-target-location cargo-feature)
+    (:qe-depends choice location-feature at-target-location cargo-feature))))
 
 (defparameter *rescue-bucket-function-0*
   (make-bucket-fun '(location-feature at-target-location cargo-feature)))

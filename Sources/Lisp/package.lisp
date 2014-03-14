@@ -145,13 +145,14 @@
    ;; Partial Programs
    #:navigate
    #:pickup-waste
-   #:drop-wate
+   #:drop-waste
    
    ;; Actions
    #:N
    #:S
    #:E
    #:W
+   #:nop
    #:pickup 
    #:drop
    #:refuel
