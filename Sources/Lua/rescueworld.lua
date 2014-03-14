@@ -385,7 +385,7 @@ metaworld.charon = {
             name = "Platon's Mind",
             address = "localhost:55559",
             run = function (worldpath, address)
-                return "sbcl --noinform --end-runtime-options --load "..worldpath.."../Lisp/platonsmind.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
+                return "sbcl --noinform --end-runtime-options --load "..worldpath.."../Lisp/platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
             end,
             halt = function (worldpath, address)
                 hexameter.tell("put", address, "charon.halt", {{charon="halting"}})
