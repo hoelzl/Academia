@@ -344,6 +344,8 @@ cost is encountered after the path is completed."
 (defstruct (rescue-state (:conc-name #:rs-))
   ;; The location of the current robot
   (location nil :type node)
+  ;; A list of target locations
+  (target-locations '() :type (or null (cons node)))
   ;; The cargo the robot is currently carrying
   (cargo nil)
   ;; The damage the robot has taken so far
@@ -512,15 +514,16 @@ cost is encountered after the path is completed."
 
 (defmethod sample-init ((env <rescue-env>))
   (let* ((graph (nav-graph env))
-         (node-1 (find-node graph 'node-1))
-         (node-2 (find-node graph 'node-2))
-         (node-3 (find-node graph 'node-3)))
+         (node-1 (find-node graph 1))
+         (node-2 (find-node graph 2))
+         (node-3 (find-node graph 3)))
     (make-rescue-state
      :location node-1
+     :target-locations (list node-1)
      :objects (list (make-victim 'v1 node-2 24)
                     (make-rubble 'r1 node-3)))))
 
-(defmethod io-interface :before ((env <rescue-env>))
+(defmethod env:io-interface :before ((env <rescue-env>))
   (format t "~&Welcome to the \"academia\" robotic rescue example.
 
 This environment demonstrates a robot that moves around a navigation network, tries to pick-up
@@ -533,11 +536,9 @@ or upper case.)")
 
 (defun make-rescue-env-0 ()
   (make-instance '<rescue-env>
-    :nav-graph (make-graph '((0.0 0.0 :id node-1)
-                             (0.0 1.0 :id node-2)
-                             (1.0 1.0 :id node-3)
-                             (1.0 0.0 :id node-4))
-                           '((node-1 node-2) (node-1 node-4)
-                             (node-2 node-3)
-                             (node-4 node-1)))
-    :home-node 'node-1))
+    :nav-graph (make-graph '((0.0 0.0 :id 1)
+                             (0.0 1.0 :id 2)
+                             (1.0 1.0 :id 3)
+                             (1.0 0.0 :id 4))
+                           '((1 2) (1 4) (2 3) (4 1)))
+    :home-node 1))

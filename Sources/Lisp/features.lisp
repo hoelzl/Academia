@@ -217,6 +217,3 @@
     (hordq-a-1 . ,*waste-bucket-function-1*)
     (hordq-a-2 . ,*waste-bucket-function-2*)
     (hordq-a-3 . ,*waste-bucket-function-3*)))
-
-(defparameter  *rescue-featurizers* `())
-(defparameter *rescue-bucket-functions* `())

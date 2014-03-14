@@ -102,7 +102,8 @@
 
    ;; Rescue states
    #:rescue-state #:make-rescue-state
-   #:rs-location #:rs-cargo #:rs-damage #:rs-robot-locations #:rs-objects
+   #:rs-location #:rs-target-locations #:rs-cargo #:rs-damage
+   #:rs-robot-locations #:rs-objects
    #:rs-actions
    #:node-objects
 

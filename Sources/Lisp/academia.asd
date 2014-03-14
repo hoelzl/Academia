@@ -18,5 +18,7 @@
                (:file "rescue-env")
                (:file "extract-q-function")
                (:file "prog")
+               (:file "rescue-prog")
                (:file "features")
+               (:file "rescue-features")
                (:file "example")))

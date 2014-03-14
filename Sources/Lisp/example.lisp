@@ -1,11 +1,13 @@
 (in-package #:academia-prog)
 
-(defvar *experiment-kind* :waste) ;; or :rescue
+(defvar *experiment-kind* :rescue) ;; :waste or :rescue
 (defvar *environment-type* :small)
 (defvar *use-complex-environment* nil)
 (defvar *environment* nil)
 
-(defvar *program* 'academia-robot-prog)
+(defvar *program* (ecase *experiment-kind*
+                    (:rescue 'random-rescue)
+                    (:waste 'academia-robot-prog)))
 
 ;;; Possible values: :random, :epsilon, :boltzman
 (defvar *exploration-strategy* :random)
@@ -29,7 +31,7 @@
                      (make-waste-env-4)))
        ((:maze :labyrinth) (make-waste-env-6))))
     ((:rescue)
-     ;...
+     (make-rescue-env-0)
      )))
 
 (defun number-of-episodes ()
@@ -110,7 +112,7 @@
 (defun explore-policies (&optional (show-advice t))
   (initialize-environment nil)
   (set-up-exploration)
-  (io-interface *program* *environment*
+  (alisp:io-interface *program* *environment*
                 (if show-advice
                     (let ((hists (map 'list #'get-q-hist (algorithms))))
                       (mapcan (lambda (hist)

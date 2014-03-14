@@ -21,3 +21,8 @@
   "Perform a random action"
   (with-choice random-action-choice (act (actions))
     (action perform-random-action act)))
+
+(defun* random-rescue ()
+  "Repeatedly perform a random action"
+  (loop
+    (random-action)))
