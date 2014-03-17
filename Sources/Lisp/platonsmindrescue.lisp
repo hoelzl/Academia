@@ -27,14 +27,29 @@
                    (let* ((position (svref consideration 2))
                           (at-target-p (if (svref consideration 3) "yes" "no"))
                           (cargo (svref consideration 4)))
-                     (format t "position: (~A,~A), at-target: ~A, cargo: ~A -> ~A [ ~A ]~%" (point-x position) (point-y position) at-target-p cargo action utility)
+                     (format t
+                             "position: (~A,~A), at-target: ~A, cargo: ~A -> ~A [ ~A ]~%"
+                             (point-x position)
+                             (point-y position)
+                             at-target-p
+                             cargo
+                             action
+                             utility)
                      (setf plan
                            (append
                             (list
-                             (item :class "anchor" :x (point-x position) :y (point-y position) :ontarget at-target-p :cargo cargo :appeal utility)
+                             (item :class "anchor"
+                                   :x (point-x position)
+                                   :y (point-y position)
+                                   :ontarget at-target-p
+                                   :cargo cargo
+                                   :appeal utility)
                              (if (listp action)
-                                 (item :class "motor" :type (first action) :control (item :to (second action) :id (second action)))
-                                 (item :class "motor" :type action))
+                                 (item :class "motor"
+                                       :type (first action)
+                                       :control (item :to (second action) :id (second action)))
+                                 (item :class "motor"
+                                       :type action))
                              (item :class "release"))
                             plan))))))
 

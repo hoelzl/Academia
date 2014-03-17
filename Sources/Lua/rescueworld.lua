@@ -91,6 +91,19 @@ local function ishome(x, y)
     end
 end
 
+local function allhomes()
+    local positions = {}
+    for x,entry in pairs(homes) do
+        for y,slot in pairs(entry) do
+            if slot then
+                local home = getnode(x, y)
+                table.insert(positions, home)
+            end
+        end
+    end
+    return positions
+end
+
 local labels = {}
 
 local function label(x, y, name)
@@ -121,7 +134,7 @@ makeedge(getnode(1,0), getnode(0,0), 1)
 makeedge(getnode(0,1), getnode(1,1), 1)
 makeedge(getnode(1,1), getnode(0,1), 1)
 
-makeobject(0, 1, {class="victim", id="v1"})
+makeobject(0, 1, {class="victim", id="v1", reward=1000})
 makeobject(1, 1, {class="rubble", id="r1"})
 
 makehome(0, 0)
@@ -141,6 +154,7 @@ local function explain(body)
     explanation = explanation.."      attention: "..(body.state.attention and "<taught>" or "<clueless>").."\n"
     explanation = explanation.."      damage:    "..(body.state.damage or 0).."\n"
     explanation = explanation.."      reward:    "..(body.state.reward or 0).."\n"
+    explanation = explanation.."      cargo:     "..(body.state.carriage and body.state.carriage.id or "<none>").."\n"
     return explanation
 end
 
@@ -157,8 +171,10 @@ local result = {
             damages = damages + (body.state.damage or 0)
             rewards = rewards + (body.state.reward or 0)
         end
-        for id,object in pairs(getnode(0,0).objects or {}) do
-            rewards = rewards + (object.reward or 0)
+        for _,home in pairs(allhomes()) do
+            for id,object in pairs(home.objects) do
+                rewards = rewards + (object.reward or 0)
+            end
         end
         return {damages=damages, rewards=rewards, success=rewards-damages, age=me.state.age or "??"}
     end
@@ -313,15 +329,50 @@ world.observer = {
     name = "observer",
     sensors = {},
     motors = {},
-    state = {},  
+    state = {},
+    print = function() return "" end
 }
+
+world.pro = {
+    name = "pro",
+    sensors = {},
+    motors = {forget, go, pickup, drop, nop},
+    state = {
+        position = getnode(0,0),
+        damage = 0,
+        reward = 0
+    },
+    psyche = function(realm, me)
+        return function(clock, body)
+            local action = {}
+            if clock == 1 then
+                action = {body=body, type="go", control={to=2}}
+            elseif clock == 2 then
+                action = {body=body, type="pickup", control={id="v1"}}
+            elseif clock == 3 then
+                action = {body=body, type="go", control={to=1}}
+            elseif clock == 4 then
+                action = {body=body, type="drop", control={}}
+            else
+                action = {body=body, type="nop", control={}}
+            end
+            hexameter.tell("put", realm, "motors", {action})
+            --hexameter.tell("put", realm, "motors", {{body=body, class="motor", type="shout", control={content=action}}})
+        end
+    end,
+    obolos = {
+        psyche = true
+    },
+    print = explain
+}
+world.pro = nil --we really only want to "go pro" for testing purposes
 
 world.platon = {
     name = "platon",
     sensors = {result, spot, guts},
     motors = {shout, nop},
     state = {
-        position = getnode(1,1) --TODO: this needs ot match an actual node in the world
+        position = getnode(1,1),
     },
     psyche = function(realm, me)
         local ultimateplan = {
@@ -378,7 +429,7 @@ tartaros.clone("math1", "math4")
 
 metaworld.charon = {
     addresses = "localhost:55555,...,localhost:55565,-localhost:55559",
-    doomsday = 12,
+    doomsday = 30,
     ferry =
     {
         {
