@@ -31,8 +31,7 @@
                      (make-waste-env-4)))
        ((:maze :labyrinth) (make-waste-env-6))))
     ((:rescue)
-     (make-rescue-env-0)
-     )))
+     (make-rescue-env-0))))
 
 (defun number-of-episodes ()
   (ecase *environment-type*
@@ -59,7 +58,7 @@
             ((:maze :labyrinth) (if (eq *exploration-strategy* :random)
                                      50 25)))))
     (* base-size *step-number-multiplier*))
-  1000)
+  10)
 
 
 (defun initialize-environment (&optional (force t))

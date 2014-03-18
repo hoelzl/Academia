@@ -30,14 +30,47 @@
 (defparameter *rescue-bucket-function-0*
   (make-bucket-fun '(location-feature at-target-location cargo-feature)))
 
+(defparameter *rescue-featurizer-1*
+  (make-3partq-featurizer
+   ()
+   (random-action-choice
+    (:qr-depends choice location-feature at-target-location cargo-feature)
+    (:qc-depends)
+    (:qe-depends))))
+
+(defparameter *rescue-bucket-function-1*
+  (make-bucket-fun '(location-feature at-target-location cargo-feature)))
+
+(defparameter *rescue-featurizer-2*
+  (make-3partq-featurizer
+   ()
+   (random-action-choice
+    (:qr-depends)
+    (:qc-depends choice location-feature at-target-location cargo-feature)
+    (:qe-depends))))
+
+(defparameter *rescue-bucket-function-2*
+  (make-bucket-fun '(location-feature at-target-location cargo-feature)))
+
+(defparameter *rescue-featurizer-3*
+  (make-3partq-featurizer
+   ()
+   (random-action-choice
+    (:qr-depends)
+    (:qc-depends)
+    (:qe-depends choice location-feature at-target-location cargo-feature))))
+
+(defparameter *rescue-bucket-function-3*
+  (make-bucket-fun '(location-feature at-target-location cargo-feature)))
+
 (defparameter *rescue-featurizers*
   `((hordq-a-0 . , *rescue-featurizer-0*)
-    (hordq-a-1 . , *rescue-featurizer-0*)
-    (hordq-a-2 . , *rescue-featurizer-0*)
-    (hordq-a-3 . , *rescue-featurizer-0*)))
+    (hordq-a-1 . , *rescue-featurizer-1*)
+    (hordq-a-2 . , *rescue-featurizer-2*)
+    (hordq-a-3 . , *rescue-featurizer-3*)))
 
 (defparameter *rescue-bucket-functions*
   `((hordq-a-0 . , *rescue-bucket-function-0*)
-    (hordq-a-1 . , *rescue-bucket-function-0*)
-    (hordq-a-2 . , *rescue-bucket-function-0*)
-    (hordq-a-3 . , *rescue-bucket-function-0*)))
+    (hordq-a-1 . , *rescue-bucket-function-1*)
+    (hordq-a-2 . , *rescue-bucket-function-2*)
+    (hordq-a-3 . , *rescue-bucket-function-3*)))

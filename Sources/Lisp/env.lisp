@@ -1,13 +1,13 @@
 (in-package #:academia-env)
 
-(defparameter *algorithm-names* (list 
-                                 ;; 'hordq
-                                 ;; 'gold-standard
+(defparameter *algorithm-names* (list
+                                 'smdpq
+                                 'hordq
+                                 'gold-standard
                                  'hordq-a-0
                                  'hordq-a-1
                                  'hordq-a-2
-                                 'hordq-a-3
-                                 ))
+                                 'hordq-a-3))
 
 (defvar *current-exploration-strategy*)
 (defvar *step-number-multiplier* 1)

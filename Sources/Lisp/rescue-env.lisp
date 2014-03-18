@@ -83,8 +83,9 @@
 (defvar *default-node-cost* 1.0)
 (defvar *node-id-counter* 0)
 
-(defstruct (node (:constructor make-node (x y &key (cost *default-node-cost*)
-                                                   (id (incf *node-id-counter*))))
+(defstruct (node (:constructor make-node (&optional (x 0.0) (y 0.0)
+                                          &key (cost *default-node-cost*)
+                                               (id (incf *node-id-counter*))))
                  (:include point))
   id
   (cost *default-node-cost* :type number)
