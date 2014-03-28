@@ -50,6 +50,7 @@
                                        :control (item :to (second action) :id (second action)))
                                  (item :class "motor"
                                        :type action))
+                             (item :class "teach")
                              (item :class "release"))
                             plan))))))
 

@@ -14,6 +14,16 @@ local function makenode(x, y, cost, objects)
     graph.nodes[x][y] = newnode
     return newnode
 end
+tartaros.publish("makenode", function(item) return makenode(item.x, item.y, item.cost, item.objects) end)
+
+local function removenode(x, y)
+    if graph.nodes[x] then
+        graph.nodes[x][y] = nil
+        return true
+    end
+    return false
+end
+tartaros.publish("removenode", function(item) return removenode(item.x, item.y) end)
 
 local function getnode(x, y)
     if type(x) == "table" then
@@ -56,6 +66,19 @@ local function makeedge(from, to, cost)
     graph.edges[from.x][from.y][to.x][to.y] = newedge
     return newedge
 end
+tartaros.publish("makeedge", function(item) return makeedge(item.from, item.to, item.cost) end)
+
+local function removeedge(from, to)
+    if not from.x or not from.y or not to.x or not to.y then
+        return false
+    end
+    if graph.edges[from.x] and graph.edges[from.x][from.y] and graph.edges[from.x][from.y][to.x] then
+        graph.edges[from.x][from.y][to.x][to.y] = nil
+        return true
+    end
+    return false
+end
+tartaros.publish("removeedge", function(item) print("&&&&& EDGE REMOVED"); return removeedge(item.from, item.to) end)
 
 local counters = {}
 
@@ -75,6 +98,7 @@ local function makeobject(x, y, object)
     end
     graph.nodes[x][y].objects[object.id] = object
 end
+tartaros.publish("makeobject", function(item) return makeobject(item.x, item.y, item.object) end)
 
 local homes = {}
 
@@ -82,6 +106,7 @@ local function makehome(x, y)
     homes[x] = homes[x] or {}
     homes[x][y] = true
 end
+tartaros.publish("makehome", function(item) return makehome(item.x, item.y) end)
 
 local function ishome(x, y)
     if homes[x] and homes[x][y] then
@@ -255,9 +280,12 @@ local shout = {
         else
             for name,body in pairs(world) do
             --for _,name in pairs(tartaros.sensor(me, "spot")) do
-            --    if tartaros.can(world[name], listen) then
-                    world[name].state.attention = control.content
-            --    end
+                if tartaros.can(world[name], listen) then
+                    for i,step in ipairs(control.content) do
+                        world[name].state.attention = world[name].state.attention or {}
+                        table.insert(world[name].state.attention, step)
+                    end
+                end
             --end
             end
         end
@@ -336,7 +364,7 @@ world.observer = {
 world.pro = {
     name = "pro",
     sensors = {},
-    motors = {forget, go, pickup, drop, nop},
+    motors = {shout, forget, go, pickup, drop, nop},
     state = {
         position = getnode(0,0),
         damage = 0,
@@ -344,28 +372,41 @@ world.pro = {
     },
     psyche = function(realm, me)
         return function(clock, body)
-            local action = {}
-            if clock == 1 then
-                action = {body=body, type="go", control={to=2}}
-            elseif clock == 2 then
-                action = {body=body, type="pickup", control={id="v1"}}
-            elseif clock == 3 then
-                action = {body=body, type="go", control={to=1}}
-            elseif clock == 4 then
-                action = {body=body, type="drop", control={}}
-            else
-                action = {body=body, type="nop", control={}}
-            end
-            hexameter.tell("put", realm, "motors", {action})
-            --hexameter.tell("put", realm, "motors", {{body=body, class="motor", type="shout", control={content=action}}})
+            hexameter.tell("put", realm, "motors", {{body=body, type="shout", control={content={
+                {class="anchor", x=0, y=0, ontarget="yes", cargo="nil", appeal=9001},
+                {class="motor", type="go", control={to="2"}},
+                {class="release"},
+                {class="anchor", x=0, y=0, ontarget="yes", cargo="v1", appeal=10000},
+                {class="motor", type="drop", control={}},
+                {class="release"},
+                {class="anchor", x=0, y=1, ontarget="no", cargo="nil", appeal=10000},
+                {class="motor", type="pickup", control={id="v1"}},
+                {class="release"},
+            }}}})
         end
+        --return function(clock, body)
+        --    local action = {}
+        --    if clock == 1 then
+        --        action = {body=body, type="go", control={to=2}}
+        --    elseif clock == 2 then
+        --        action = {body=body, type="pickup", control={id="v1"}}
+        --    elseif clock == 3 then
+        --        action = {body=body, type="go", control={to=1}}
+        --    elseif clock == 4 then
+        --        action = {body=body, type="drop", control={}}
+        --    else
+        --        action = {body=body, type="nop", control={}}
+        --    end
+        --    hexameter.tell("put", realm, "motors", {action})
+        --    --hexameter.tell("put", realm, "motors", {{body=body, class="motor", type="shout", control={content=action}}})
+        --end
     end,
     obolos = {
         psyche = true
     },
     print = explain
 }
-world.pro = nil --we really only want to "go pro" for testing purposes
+--world.pro = nil --we really only want to "go pro" for testing purposes
 
 world.platon = {
     name = "platon",
@@ -410,13 +451,16 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {forget, go, pickup, drop, nop},
+    motors = {shout, forget, go, pickup, drop, nop},
     state = {
         position = getnode(0,0),
         damage = 0,
         reward = 0
     },
-    psyche = "./mathetesneos.lua", --"./mathetes.lua"
+    time = function(body, world, clock)
+        body.state.damage = body.state.damage + 1
+    end,
+    psyche = "./mathetesneoteros.lua", --"./mathetes.lua"
     obolos = {
         psyche = true
     },
