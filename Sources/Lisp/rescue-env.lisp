@@ -556,3 +556,13 @@ or upper case.)~2%")
                              (1 4) (4 1)
                              (2 3) (3 2)))
     :home-node 1))
+
+(defun load-rescue-env (file)
+  (with-open-file (stream file :direction :input)
+    (destructuring-bind (&key nav-graph home-node) (read stream)
+      (make-instance '<rescue-env>
+        :nav-graph (apply 'make-graph nav-graph)
+        :home-node home-node))))
+
+(defun make-rescue-env-1 ()
+  (load-rescue-env "rescue-scenario-01.lisp"))
