@@ -1,122 +1,30 @@
 local tartaros = require "tartaros"
-local world, metaworld = tartaros.create(environment)
-tartaros.load("sisyphos", true)
+local world, metaworld = tartaros.create()
+tartaros.load("sisyphos_graph")
 tartaros.load("tantalos", true)
 
+local makenode = tartaros.sisyphos_graph.makenode
+local removenode = tartaros.sisyphos_graph.removenode
+local makeedge = tartaros.sisyphos_graph.makeedge
+local removeedge = tartaros.sisyphos_graph.removeedge
+local makeobject = tartaros.sisyphos_graph.makeobject
+local makehome = tartaros.sisyphos_graph.makehome
+local getnode = tartaros.sisyphos_graph.getnode
+local getedge = tartaros.sisyphos_graph.getedge
+local getedges = tartaros.sisyphos_graph.getedges
+local ishome = tartaros.sisyphos_graph.ishome
+local allhomes = tartaros.sisyphos_graph.allhomes
+local label = tartaros.sisyphos_graph.label
+local lookup = tartaros.sisyphos_graph.lookup
 
---world graph library
-
-local graph = {nodes={}, edges={}}
-
-local function makenode(x, y, cost, objects)
-    local newnode = {x=x, y=y, cost=cost or 0, objects=objects or {}}
-    graph.nodes[x] = graph.nodes[x] or {}
-    graph.nodes[x][y] = newnode
-    return newnode
-end
-
-local function getnode(x, y)
-    if type(x) == "table" then
-        x, y = x.x, x.y
-    end
-    if graph.nodes[x] then
-        return graph.nodes[x][y]
-    end
-    return nil
-end
-
-local function getedges(x, y)
-    if type(x) == "table" then
-        x, y = x.x, x.y
-    end
-    if graph.edges[x] then
-        return graph.edges[x][y] or {}
-    end
-    return {}
-end
-
-local function getedge(from, to)
-    if not from or not to or not from.x or not from.y or not to.x or not to.y then
-        return false
-    end
-    if graph.edges[from.x] and graph.edges[from.x][from.y] and graph.edges[from.x][from.y][to.x] then
-        return graph.edges[from.x][from.y][to.x][to.y]
-    end
-    return nil
-end
-
-local function makeedge(from, to, cost)
-    if not from.x or not from.y or not to.x or not to.y then
-        return false
-    end
-    local newedge = {from=from, to=to, cost=cost or 0}
-    graph.edges[from.x] = graph.edges[from.x] or {}
-    graph.edges[from.x][from.y] = graph.edges[from.x][from.y] or {}
-    graph.edges[from.x][from.y][to.x] = graph.edges[from.x][from.y][to.x] or {}
-    graph.edges[from.x][from.y][to.x][to.y] = newedge
-    return newedge
-end
-
-local counters = {}
-
-local function makeobject(x, y, object)
-    if not x or not y or not graph.nodes[x] or not graph.nodes[x][y] then
-        return false
-    end
-    if not graph.nodes[x][y].objects then
-        graph.nodes[x][y].objects = {}
-    end
-    if not object.class then
-        object.class = "object"
-    end
-    if not object.id then
-        counters[object.class] = counters[object.class] and (counters[object.class] + 1) or 1
-        object.id = object.class.."-"..counters[object.class]
-    end
-    graph.nodes[x][y].objects[object.id] = object
-end
-
-local homes = {}
-
-local function makehome(x, y)
-    homes[x] = homes[x] or {}
-    homes[x][y] = true
-end
-
-local function ishome(x, y)
-    if homes[x] and homes[x][y] then
-        return "yes"
-    else
-        return "no"
-    end
-end
-
-local function allhomes()
-    local positions = {}
-    for x,entry in pairs(homes) do
-        for y,slot in pairs(entry) do
-            if slot then
-                local home = getnode(x, y)
-                table.insert(positions, home)
-            end
-        end
-    end
-    return positions
-end
-
-local labels = {}
-
-local function label(x, y, name)
-    labels[name] = {x = x, y = y}
-end
-
-local function lookup(name)
-    if labels[name] and labels[name].x and labels[name].y and graph.nodes[labels[name].x] then
-        return graph.nodes[labels[name].x][labels[name].y]
-    end
-    return nil
-end
-
+tartaros.publish("edition", tartaros.sisyphos_graph.edition)
+tartaros.publish("stuff", tartaros.sisyphos_graph.stuff)
+tartaros.publish("makenode", tartaros.sisyphos_graph._makenode)
+tartaros.publish("removenode", tartaros.sisyphos_graph._removenode)
+tartaros.publish("makeedge", tartaros.sisyphos_graph._makeedge)
+tartaros.publish("removeedge", tartaros.sisyphos_graph._removeedge)
+tartaros.publish("makeobject", tartaros.sisyphos_graph._makeedge)
+tartaros.publish("makehome", tartaros.sisyphos_graph._makehome)
 
 --static world setup
 
@@ -255,9 +163,12 @@ local shout = {
         else
             for name,body in pairs(world) do
             --for _,name in pairs(tartaros.sensor(me, "spot")) do
-            --    if tartaros.can(world[name], listen) then
-                    world[name].state.attention = control.content
-            --    end
+                if tartaros.can(world[name], listen) then
+                    for i,step in ipairs(control.content) do
+                        world[name].state.attention = world[name].state.attention or {}
+                        table.insert(world[name].state.attention, step)
+                    end
+                end
             --end
             end
         end
@@ -336,7 +247,7 @@ world.observer = {
 world.pro = {
     name = "pro",
     sensors = {},
-    motors = {forget, go, pickup, drop, nop},
+    motors = {shout, forget, go, pickup, drop, nop},
     state = {
         position = getnode(0,0),
         damage = 0,
@@ -344,28 +255,41 @@ world.pro = {
     },
     psyche = function(realm, me)
         return function(clock, body)
-            local action = {}
-            if clock == 1 then
-                action = {body=body, type="go", control={to=2}}
-            elseif clock == 2 then
-                action = {body=body, type="pickup", control={id="v1"}}
-            elseif clock == 3 then
-                action = {body=body, type="go", control={to=1}}
-            elseif clock == 4 then
-                action = {body=body, type="drop", control={}}
-            else
-                action = {body=body, type="nop", control={}}
-            end
-            hexameter.tell("put", realm, "motors", {action})
-            --hexameter.tell("put", realm, "motors", {{body=body, class="motor", type="shout", control={content=action}}})
+            hexameter.tell("put", realm, "motors", {{body=body, type="shout", control={content={
+                {class="anchor", x=0, y=0, ontarget="yes", cargo="nil", appeal=9001},
+                {class="motor", type="go", control={to="2"}},
+                {class="release"},
+                {class="anchor", x=0, y=0, ontarget="yes", cargo="v1", appeal=10000},
+                {class="motor", type="drop", control={}},
+                {class="release"},
+                {class="anchor", x=0, y=1, ontarget="no", cargo="nil", appeal=10000},
+                {class="motor", type="pickup", control={id="v1"}},
+                {class="release"},
+            }}}})
         end
+        --return function(clock, body)
+        --    local action = {}
+        --    if clock == 1 then
+        --        action = {body=body, type="go", control={to=2}}
+        --    elseif clock == 2 then
+        --        action = {body=body, type="pickup", control={id="v1"}}
+        --    elseif clock == 3 then
+        --        action = {body=body, type="go", control={to=1}}
+        --    elseif clock == 4 then
+        --        action = {body=body, type="drop", control={}}
+        --    else
+        --        action = {body=body, type="nop", control={}}
+        --    end
+        --    hexameter.tell("put", realm, "motors", {action})
+        --    --hexameter.tell("put", realm, "motors", {{body=body, class="motor", type="shout", control={content=action}}})
+        --end
     end,
     obolos = {
         psyche = true
     },
     print = explain
 }
-world.pro = nil --we really only want to "go pro" for testing purposes
+--world.pro = nil --we really only want to "go pro" for testing purposes
 
 world.platon = {
     name = "platon",
@@ -410,13 +334,16 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {forget, go, pickup, drop, nop},
+    motors = {shout, forget, go, pickup, drop, nop},
     state = {
         position = getnode(0,0),
         damage = 0,
         reward = 0
     },
-    psyche = "./mathetesneos.lua", --"./mathetes.lua"
+    time = function(body, world, clock)
+        body.state.damage = body.state.damage + 1
+    end,
+    psyche = "./mathetesneoteros.lua", --"./mathetes.lua"
     obolos = {
         psyche = true
     },
