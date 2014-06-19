@@ -1,5 +1,11 @@
 (in-package #:academia-prog)
 
+(defun make-bucket-fun (features)
+  (lambda (state)
+    (mapcar (lambda (fun)
+              (funcall fun state nil))
+            features)))
+
 (def-feature location-feature (state action)
   (rs-location env-state))
 

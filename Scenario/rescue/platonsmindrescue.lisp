@@ -1,5 +1,15 @@
+(let ((appdir (concatenate 'string (sb-posix:getcwd) "/../../")) (librootdir (concatenate 'string (sb-posix:getcwd) "/../../Sources/Lisp/")))
+(asdf:initialize-source-registry
+  `(:source-registry
+     (:directory ,appdir)
+     (:tree ,librootdir)
+     :inherit-configuration))
+(print appdir)
+(print librootdir)
+(print asdf:*central-registry*))
+
 (require :hexameter)
-(require :academia)
+(require :academia-rescue)
 (require :sb-posix)
 (in-package :academia-prog)
 

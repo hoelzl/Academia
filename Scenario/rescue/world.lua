@@ -343,7 +343,7 @@ world.math1 = {
     time = function(body, world, clock)
         body.state.damage = body.state.damage + 1
     end,
-    psyche = "./mathetesneoteros.lua", --"./mathetes.lua"
+    psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
     obolos = {
         psyche = true
     },
@@ -363,7 +363,7 @@ metaworld.charon = {
             name = "Platon's Mind",
             address = "localhost:55559",
             run = function (worldpath, address)
-                return "sbcl --noinform --end-runtime-options --load "..worldpath.."../Lisp/platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
+                return "sbcl --noinform --end-runtime-options --load "..worldpath.."platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
             end,
             halt = function (worldpath, address)
                 hexameter.tell("put", address, "charon.halt", {{charon="halting"}})

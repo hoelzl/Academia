@@ -7,18 +7,18 @@
   :author "Matthias Hoelzl <tc@xantira.com>"
   :license "MIT, see file LICENSE"
   :depends-on (#:alexandria
-	       #:hrl
+               #:hrl
                #:cl-heap
                #:hexameter)
   :components ((:file "utils-package")
                (:file "utils")
                (:file "epsilon-policy")
                (:file "package")
-               (:file "env")
-               (:file "rescue-env")
+               ;(:file "env")
+               ;(:file "rescue-env")
                (:file "extract-q-function")
-               (:file "prog")
-               (:file "rescue-prog")
-               (:file "features")
-               (:file "rescue-features")
+               ;(:file "prog")
+               ;(:file "rescue-prog")
+               ;(:file "features")
+               ;(:file "rescue-features")
                (:file "example")))

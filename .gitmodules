@@ -1,3 +1,9 @@
 [submodule "Sources/Lua/hades"]
 	path = Sources/Lua/hades
 	url = https://github.com/thomasgabor/hades.git
+[submodule "Sources/Lisp/hexameter"]
+	path = Sources/Lisp/hexameter
+	url = https://github.com/hoelzl/Hexameter
+[submodule "Sources/Lisp/hrl"]
+	path = Sources/Lisp/hrl
+	url = https://github.com/hoelzl/programmable-reinforcement-learning.git
