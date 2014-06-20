@@ -1,12 +1,5 @@
-echo "+------------------------------------------------------------------------+"
-echo "| Please make sure you have installed the following modules from our     |"
-echo "| project sites and set up ASDF to find them:                            |"
-echo "|  * HEXAMETER for LISP (:hexameter)                                     |"
-echo "|  * HRL (:hrl)                                                          |"
-echo "+------------------------------------------------------------------------+"
+echo "Now running Platon's mind... (Please bare with me through all the compiling!)"
 echo
-echo "Now running Platon's mind..."
-echo
-sbcl --load ./platonsmindrescue.lisp --end-toplevel-options localhost:55559
-# script doesn't work because then we cannot laod any library, but maybe we can fix this in the future
-#sbcl --script ../Sources/Lisp/platonsmind.lisp
+sbcl  --noinform --disable-ldb  --lose-on-corruption --no-sysinit --disable-debugger --load ./platonsmindrescue.lisp --end-toplevel-options localhost:55559
+# script option doesn't work because then we cannot load (quicklisp) library dependencies then
+#sbcl --script ./platonsmindrescue.lisp

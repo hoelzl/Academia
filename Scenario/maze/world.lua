@@ -1,6 +1,10 @@
 require "serialize"
-require "tartaros"
+local tartaros = require "tartaros"
+local world, metaworld = tartaros.create()
 local show = serialize.presentation
+
+tartaros.load("sisyphos_grid")
+tartaros.load("tantalos", true)
 
 local settings = {
     rates = {
@@ -24,7 +28,7 @@ end
 -- static world description library
 
 --import functions
-for name,value in pairs(tartaros.sisyphos) do
+for name,value in pairs(tartaros.sisyphos_grid) do
     _G[name] = value
 end
 for name,value in pairs(tartaros.tantalos) do
@@ -276,7 +280,7 @@ world = {
             targetx = 0,
             targety = 0
         },
-        psyche = "./mathetesneos.lua", --"./mathetes.lua"
+        psyche = "../../Sources/Lua/mathetesneos.lua", --"./mathetes.lua"
         obolos = {
             psyche = true
         },
@@ -293,7 +297,7 @@ world = {
             targetx = 0,
             targety = 0
         },
-        psyche = "./mathetesneos.lua", --"./mathetes.lua"
+        psyche = "../../Sources/Lua/mathetesneos.lua", --"./mathetes.lua"
         obolos = {
             psyche = true
         },

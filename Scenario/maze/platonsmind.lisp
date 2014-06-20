@@ -1,6 +1,24 @@
-(require :hexameter)
-(require :academia)
+(require :asdf)
 (require :sb-posix)
+
+(let ((appdir (concatenate 'string (sb-posix:getcwd) "/../../")) (librootdir (concatenate 'string (sb-posix:getcwd) "/../../Sources/Lisp/")))
+    (asdf:initialize-source-registry
+      `(:source-registry
+         (:directory ,appdir)
+         (:tree ,librootdir)
+         :inherit-configuration))
+    ;(print appdir)
+    ;(print librootdir)
+    ;(print asdf:*central-registry*)
+)
+(setf *load-verbose* nil
+      *load-print* nil
+      *compile-print*  nil
+      *compile-verbose* nil
+      asdf:*asdf-verbose* nil)
+
+(require :hexameter)
+(require :academia-maze)
 (in-package :academia-prog)
 
 (defun item (&rest args)

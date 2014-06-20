@@ -15,9 +15,14 @@
 (defun make-new-environment (&optional (kind *experiment-kind*)
                                        (type *environment-type*)
                                        (complexp *use-complex-environment*))
+  (setf *experiment-kind* kind)
+  (setf *environment-type* type)
+  (setf *use-complex-environment* complexp)
+  (setf *program* (ecase *experiment-kind*
+                    (:rescue 'random-rescue)
+                    (:waste 'academia-robot-prog)))
   (ecase kind
     ((:waste)
-     ;; TODO?: Set *environmen-type* when given a parameter here
      (ecase type
        ((:hades) (make-instance '<hades-env>))
        ((:small) (if complexp
