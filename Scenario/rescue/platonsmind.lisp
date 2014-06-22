@@ -21,23 +21,28 @@
 (require :academia-rescue)
 (in-package :academia-prog)
 
+(defvar me (or (cadr sb-ext:*posix-argv*) "localhost:55559"))
+(defvar model (or (caddr sb-ext:*posix-argv*) "./model-01.lisp"))
+
 (defun item (&rest args)
   (apply 'hexameter:hex-item args))
 
 ;; TODO: Standard symbols for initialize-algorithms from package academia-env do not match literals in academia-prog
 ;; TODO: hordq-a-<n> with n > 1 throw errors
 
-(let* ((rescenv (make-new-environment :rescue :medium)) ;;(make-rescue-env-0)
-       (graph (nav-graph rescenv)))
-  (initialize-algorithms (list 'hordq-a-0 'hordq-a-1))
-  (learn-behavior)
-  
-  (let ((me (or (cadr sb-ext:*posix-argv*) "localhost:55559"))
-        (apocalypse nil)
-        (knowledge-base (build-state-table))
+(let* ((rescenv nil) ;;(make-rescue-env-0)
+       (graph nil))
+       
+  (defun learn-stuff (model-generator)
+      (setf rescenv (setup-experiment model-generator 'random-rescue 100 10 *rescue-featurizers* *rescue-bucket-functions*))
+      (setf graph (nav-graph rescenv))
+      (initialize-algorithms (list 'hordq-a-0 'hordq-a-1))
+      (learn-behavior)
+
+      (let ((knowledge-base (build-state-table))
         (plan nil))
 
-    (loop for consideration being the hash-keys of knowledge-base
+      (loop for consideration being the hash-keys of knowledge-base
           using (hash-value utility)
           do (let ((choice-point (svref consideration 0))
                    (action (svref consideration 1)))
@@ -71,7 +76,11 @@
                              (item :class "teach")
                              (item :class "release"))
                             plan))))))
+      plan)))
 
+(let ((apocalypse nil)
+      (current-plan (learn-stuff (lambda () (academia-env::load-rescue-env model))))
+      (current-model model))
 
 
     (gbbopen-tools:define-class logic-space (spondeios:hexameter-space)
@@ -84,6 +93,18 @@
              (progn
                (setf apocalypse t)
                (values nil nil)))
+            ((string= space "didaskalos.model")
+              (dolist (item parameter)
+                (multiple-value-bind (model model-p) (gethash "model" item)
+                (when model-p
+                  (format t "**  received model update, trying to update and learn anew~%")
+                  (setf current-model model)
+                  (setf current-plan (learn-stuff (lambda () (academia-env::load-rescue-env current-model)))))))
+              (values (list (item :model t)) t))
+            ((string= space "didaskalos.relearn")
+              (format t "**  received order to restart learning process, trying to do so~%")
+              (setf current-plan (learn-stuff (lambda () (academia-env::load-rescue-env current-model))))
+              (values (list (item :relearning t)) t))
             ((string= space "plan")
              (format t "ANSWER~%")
              (values
@@ -93,6 +114,6 @@
 
     (let ((context (hex:init :me me :space 'logic-space)))
       (format t "~&Entering infinite response loop, please abort manually.~%")
-      (loop while (not apocalypse) do (hex:respond context 0)))))
+      (loop while (not apocalypse) do (hex:respond context 0))))
 
   (format t "~&Halt.~%")

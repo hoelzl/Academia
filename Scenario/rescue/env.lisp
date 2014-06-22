@@ -607,4 +607,4 @@ or upper case.)~2%")
         :home-node home-node))))
 
 (defun make-rescue-env-1 ()
-  (load-rescue-env "rescue-scenario-01.lisp"))
+  (load-rescue-env "model-01.lisp"))

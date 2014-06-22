@@ -1,8 +1,8 @@
 ;;;; academia.asd
 
-(asdf:defsystem #:academia
+(asdf:defsystem #:academia-legacy
   :serial t
-  :description "rescuing robots"
+  :description "Waste-collecting robots"
   :version "0.0.1"
   :author "Matthias Hoelzl <tc@xantira.com>"
   :license "MIT, see file LICENSE"
@@ -21,4 +21,4 @@
                ;(:file "rescue-prog")
                ;(:file "features")
                ;(:file "rescue-features")
-               (:file "didaskalos")))
+               (:file "example")))
