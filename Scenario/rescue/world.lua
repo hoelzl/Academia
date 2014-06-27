@@ -28,24 +28,28 @@ tartaros.publish("makehome", tartaros.sisyphos_graph._makehome)
 
 --static world setup
 
-makenode(0, 0); label(0, 0, "1")
-makenode(0, 1); label(0, 1, "2")
-makenode(1, 0); label(1, 0, "4")
-makenode(1, 1); label(1, 1, "3")
+if true then
+    tartaros.sisyphos_graph._process(dofile("./model-01.lua"))
+else
+    makenode(0, 0); label(0, 0, "1")
+    makenode(0, 1); label(0, 1, "2")
+    makenode(1, 0); label(1, 0, "4")
+    makenode(1, 1); label(1, 1, "3")
 
-makeedge(getnode(0,0), getnode(0,1), 1)
-makeedge(getnode(0,1), getnode(0,0), 1)
+    makeedge(getnode(0,0), getnode(0,1), 1)
+    makeedge(getnode(0,1), getnode(0,0), 1)
 
-makeedge(getnode(0,0), getnode(1,0), 1)
-makeedge(getnode(1,0), getnode(0,0), 1)
+    makeedge(getnode(0,0), getnode(1,0), 1)
+    makeedge(getnode(1,0), getnode(0,0), 1)
 
-makeedge(getnode(0,1), getnode(1,1), 1)
-makeedge(getnode(1,1), getnode(0,1), 1)
+    makeedge(getnode(0,1), getnode(1,1), 1)
+    makeedge(getnode(1,1), getnode(0,1), 1)
+
+    makehome(0, 0)
+end
 
 makeobject(0, 1, {class="victim", id="v1", reward=1000})
 makeobject(1, 1, {class="rubble", id="r1"})
-
-makehome(0, 0)
 
 
 
@@ -364,6 +368,10 @@ metaworld.charon = {
             address = "localhost:55559",
             run = function (worldpath, address)
                 return "sbcl --noinform --end-runtime-options --load "..worldpath.."platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
+            end,
+            setup = function (recycledp, address)
+                --hexameter.tell("put", address, "didaskalos.relearn", {tartaros.sisyphos_graph.produce()})
+                hexameter.tell("put", address, "didaskalos.model", {{model=tartaros.sisyphos_graph.produce()}})
             end,
             halt = function (worldpath, address)
                 hexameter.tell("put", address, "charon.halt", {{charon="halting"}})

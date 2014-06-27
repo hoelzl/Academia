@@ -605,6 +605,12 @@ or upper case.)~2%")
       (make-instance '<rescue-env>
         :nav-graph (apply 'make-graph nav-graph)
         :home-node home-node))))
+        
+(defun make-rescue-env (model)
+(destructuring-bind (&key nav-graph home-node) model
+  (make-instance '<rescue-env>
+    :nav-graph (apply 'make-graph nav-graph)
+    :home-node home-node)))
 
 (defun make-rescue-env-1 ()
   (load-rescue-env "model-01.lisp"))
