@@ -351,6 +351,9 @@ world.math1 = {
     obolos = {
         psyche = true
     },
+    deras = {
+        robot = true
+    },
     print = explain
 }
 
