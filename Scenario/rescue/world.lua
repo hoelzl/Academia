@@ -338,7 +338,7 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {shout, forget, go, pickup, drop, nop},
+    motors = {shout, forget, pickup, drop, nop, tartaros.tantalos.combine({go, tartaros.tantalos.proxy(go, "localhost:55659")}, "go")},
     state = {
         position = getnode(0,0),
         damage = 0,
@@ -352,7 +352,25 @@ world.math1 = {
         psyche = true
     },
     deras = {
-        robot = true
+        robot = true,
+        respond = function(robot, body, msgtype, author, space, parameter)
+            if space == "stop" then
+                robot.wheels.set_velocity(0,0)
+            end
+            end,
+        motors = {
+            {
+                type = "go",
+                class = "motor",
+                run = function(robot, me, world, control)
+                    --print("go", serialize.literal(control))
+                    robot.wheels.set_velocity(-5, -5)
+                    robot.leds.set_single_color(13, "red")
+                    --print("gone")
+                    return me
+                end
+            }
+        }
     },
     print = explain
 }
@@ -384,6 +402,12 @@ metaworld.charon = {
         }
     },
     avatar = "observer",
+    hexameter = {
+        socketcache = 10
+    }
+}
+
+metaworld.iason = {
     hexameter = {
         socketcache = 10
     }

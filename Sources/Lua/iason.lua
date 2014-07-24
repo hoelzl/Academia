@@ -117,18 +117,6 @@ local function robot(type, preferrednumber)
 end
 
 
-local time = function ()
-    return function(msgtype, author, space, parameter)
-        
-    end
-end
-
---set up iason's network communication
-local me = address(environment.iason)
-hexameter.init(me, time, nil, nil, environment.hexameter)
-io.write("**  Iason is listening on "..me..(environment.servermode and " in server mode " or "").."\n")
-
-
 --copy world file
 local definition = nil
 local given = assert(io.open(it, "r"))
@@ -145,16 +133,105 @@ local mapping = assert(io.open(file("argonauts.lua"), "w"))
 io.write("**  Generating ", file("argonauts.lua"), "\n")
 mapping:write("return {\n")
 
+local routes = {}
+local robots = {}
+
 for name,body in pairs(world) do
     if body.deras and body.deras.robot then
-        mapping:write("  [\"", robot(body.deras.type or "fb", body.deras.robotid), "\"]")
-        mapping:write(" = {address=\"", address(body.deras.address), "\",")
+        local r = robot(body.deras.type or "fb", body.deras.robotid)
+        local a = address(body.deras.address)
+        mapping:write("  [\"", r, "\"]")
+        mapping:write(" = {address=\"", a, "\",")
         mapping:write(" name=\"", name, "\"},\n")
+        routes[name] = a
+        robots[r] = name
     end
 end
 
 mapping:write("}\n")
 mapping:close()
+
+
+
+local running = {}
+local finished = {}
+local online = {}
+local destroyed = {}
+local time = function ()
+    local uniqueid = 1
+    return function(msgtype, author, space, parameter)
+        --print("received ", msgtype, space)
+        local response = {}
+        if space == "motors" then
+            for i,item in ipairs(parameter) do
+                item.id = uniqueid
+                running[uniqueid] = item
+                table.insert(response, {id = item.id})
+                uniqueid = uniqueid + 1
+                hexameter.tell(msgtype, routes[item.body], "motors", {item})
+                io.write("[IASN] delivered motor action ", item.id, " for ", item.body, " to ", routes[item.body], "\n")
+            end
+        end
+        if space == "finished" then
+            if msgtype == "get" or msgtype == "qry" then
+                for i,item in ipairs(parameter) do
+                    if item.id then
+                        io.write("[IASN] check on motor action ", item.id, ": ", running[item.id] and "running" or finished[item.id] and "finished" or "not finished", "\n")
+                        if running[item.id] then
+                            table.insert(response, {})
+                        end
+                        if finished[item.id] and (not running[item.id]) then
+                            table.insert(response, {id = item.id, value = item.id})
+                            if msgtype == "get" then
+                                finished[item.id] = nil
+                            end
+                        end
+                    end
+                end
+            elseif msgtype == "put" then
+                for i,item in ipairs(parameter) do
+                    if item.id then
+                        running[item.id] = nil
+                        finished[item.id] = item.value or true
+                        io.write("[IASN] finished motor action ", item.id, "\n")
+                    end
+                end
+            end
+        end
+        if space == "robots" then
+            for i,item in ipairs(parameter) do
+                if item.id then
+                    if mgstype == "put" then
+                        online[item.id] = item.value or true
+                        table.insert(response, {id = item.id, value = online[item.id]})
+                    elseif msgtype == "get" then
+                        table.insert(response, {id = item.id, value = online[item.id]})
+                        online[item.id] = nil
+                    elseif msgtype == "qry" then
+                        table.insert(response, {id = item.id, value = online[item.id]})
+                    end
+                end
+            end
+        end
+        if space == "destroyed" then
+            for i,item in ipairs(parameter) do
+                if msgtype == "put" then
+                    if item.id then
+                        io.write("[IASN] Robot ", item.id, " signaled destruction.\n")
+                        destroyed[item.id] = true
+                        table.insert(response, {id = item.id, value = true})
+                    end
+                end
+            end
+        end
+        return response
+    end
+end
+
+--set up iason's network communication
+local me = address(environment.iason)
+hexameter.init(me, time, nil, nil, environment.hexameter)
+io.write("**  Iason is listening on "..me..(environment.servermode and " in server mode " or "").."\n")
 
 
 --create argos controller
@@ -169,40 +246,95 @@ else
     local hexameter = require "hexameter"
     local tartaros  = require "tartaros"
     
-
-    local time = function()
-        return function (msgtype, author, space, parameter)
-            --print("[HEXA] Received", parameter, "@", space)
-            if space == "gogogo" then
-                robot.wheels.set_velocity(5,5)
-            end
-        end
-    end
+    local mapping = dofile(here.."./argonauts.lua")
+    local next = {}
     
     tartaros.setup(]] .. (environment.tartaros and serialize.literal(environment.tartaros) or "") .. [[)
     world = dofile(here.."./world.lua")
     metaworld = getmetatable(world or {})
-    --TODO: actually use included world file to call robot control functions defined there
 
     function init()
-        local mapping = dofile(here.."./argonauts.lua")
-        if mapping[robot.id] then
-            io.write("[CTRL] Robot ", robot.id, " running as ", mapping[robot.id].name, " @ ", mapping[robot.id].address, "\n")
-            hexameter.init(mapping[robot.id].address, time)
+        body = mapping[robot.id] and world[mapping[robot.id].name] or nil
+        me = mapping[robot.id] and mapping[robot.id].address or nil
+        if me then
+            io.write("[CTRL] Robot ", robot.id, " running as ", body and body.name or "???", " @ ", me, "\n")
+            local time = function()
+                return function (msgtype, author, space, parameter)
+                    print("[HEXA] Received", parameter, "@", space)
+                    local response = {}
+                    if space == "gogogo" then
+                        robot.wheels.set_velocity(5,5)
+                    end
+                    if space == "sensors" then
+                        if body and body.deras and body.deras.sensors then
+                            for i,item in ipairs(parameter) do
+                                for _,sensor in pairs(body.deras.sensors) do
+                                    if item.type and (sensor.type == item.type) then
+                                        table.insert(response, {
+                                            body=item.body,
+                                            type=sensor.type,
+                                            value=sensor.measure(robot, body, world, item.control or {})})
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    if space == "motors" then
+                        if body and body.deras and body.deras.motors then
+                            for i,item in ipairs(parameter) do
+                                for _,motor in pairs(body.deras.motors) do
+                                    if item.type and (motor.type == item.type) then
+                                        table.insert(next, function (robot)
+                                            motor.run(robot, body, world, item.control or {})
+                                            hexameter.tell("put", "]] .. hexameter.me() .. [[", "finished", {{id = item.id}})
+                                        end)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    if body and body.deras and body.deras.respond then
+                        return body.deras.respond(robot, body, msgtype, author, space, parameter)
+                    end
+                    return response
+                end
+            end
+            hexameter.init(me, time)
+        end
+        if body and body.deras and body.deras.init then
+            body.deras.init(robot, body)
         end
     end
 
     function step()
-        hexameter.respond(4) --NOTE: We want very low recvtries numbers here, so happy I implemented that feature 1.5 years ago!
+        for a,action in ipairs(next) do
+            action(robot)
+        end
+        next = {}
+        if me then
+            hexameter.respond(4)
+        end
+        if body and body.deras and body.deras.step then
+            body.deras.step(robot, body)
+        end
     end
 
     function reset()
-        --do nothing for now TODO: do something?
+        if body and body.deras and body.deras.reset then
+            body.deras.reset(robot, body)
+        end
     end
 
     function destroy()
-        io.write("[CTRL] Robot ", robot.id, " shutting down\n")
-        hexameter.term()
+        if body and body.deras and body.deras.destroy then
+            body.deras.destroy(robot, body)
+        end
+        if me then
+            hexameter.tell("put", "]] .. hexameter.me() .. [[", "destroyed", {{id = robot.id, value = true}})
+            hexameter.converse(2)
+            io.write("[CTRL] Robot ", robot.id, " shutting down\n")
+            hexameter.term()
+        end
     end
     ]]
 end
@@ -210,9 +342,11 @@ if script then
     local controller = assert(io.open(file("controller.lua"), "w"))
     io.write("**  Writing ", file("controller.lua"), "\n")
     controller:write("-- NOTE: This file is auto-generated by IASON on each run. Chances are, any changes\n")
-    controller:write("--       made to this file will be immediately lost. To alter the controller program,\n")
+    controller:write("--       made to this file will be lost immediately. To alter the controller program,\n")
     controller:write("--       please edit the basic files according to the IASON documentation.\n\n")
+    controller:write("environment = ", serialize.literal(environment), "\n")
     controller:write("here = \"", there..(environment.stage), "\"\n")
+    controller:write("iason = \"", hexameter.me(), "\"\n")
     controller:write("package.path = \"", package.path, "\"\n")
     controller:write("\n")
     controller:write("-- END OF HEADER (GENERATED BY IASON)\n\n")
@@ -381,5 +515,20 @@ end
 
 --ostools.call("cd", there..(environment.stage), ";", "argos3", "-c", "world.argos")
 
-ostools.call("argos3", "-c", there..(environment.stage).."world.argos")
+ostools.call("argos3", "-c", there..(environment.stage).."world.argos", "&")
 
+local anyone = true
+
+while anyone do
+    hexameter.respond(0)
+    anyone = false
+    for robotname,_ in pairs(robots) do
+        if not destroyed[robotname] then            
+            anyone = true
+        end
+    end
+end
+
+hexameter.converse()
+
+io.write("**  Iason finsihed.\n")
