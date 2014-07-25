@@ -479,7 +479,11 @@ cost is encountered after the path is completed."
                         :initform 2.0)))
 
 
-(defmethod initialize-instance :around ((self <rescue-env>) &key home-nodes nav-graph)
+(defmethod initialize-instance :around ((self <rescue-env>) &key home-node home-nodes nav-graph)
+  (when (and home-node home-nodes)
+    (error "Cannot specify both HOME-NODE and HOME-NODES keywords"))
+  (when home-node
+    (setf home-nodes (list home-node)))
   (call-next-method self
                     :home-nodes (mapcar (lambda (node)
                                           (find-node nav-graph node))
