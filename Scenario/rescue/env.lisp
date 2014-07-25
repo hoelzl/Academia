@@ -1,5 +1,47 @@
 (in-package #:academia-env)
 
+
+(defparameter *algorithm-names* (list
+                                 'smdpq
+                                 'hordq
+                                 'gold-standard
+                                 'hordq-a-0
+                                 'hordq-a-1
+                                 'hordq-a-2
+                                 'hordq-a-3))
+
+(defvar *current-exploration-strategy*)
+(defvar *step-number-multiplier* 1)
+
+(defun algorithm-index (algorithm)
+  (let ((index (position algorithm *algorithm-names*)))
+    (assert index (index) "Algorithm ~A not defined." algorithm)
+    index))
+
+(defvar *algorithms* (make-array (list (length *algorithm-names*))
+                                 :adjustable t :fill-pointer 0))
+
+(defstruct (algorithm-description (:conc-name ad-))
+  algorithm
+  (bucket-function #'canonicalize)
+  (test #'equal))
+
+(defun algorithm-descriptions ()
+  *algorithms*)
+
+(defun algorithm-description-for (name)
+  (aref *algorithms* (algorithm-index name)))
+
+(defun algorithm-for (name)
+  (ad-algorithm (algorithm-description-for name)))
+
+(defun algorithms ()
+  (map-array 'ad-algorithm *algorithms*))
+
+(defun current-algorithm ()
+  (aref (algorithms) 0))
+
+
 ;;; Graph Structure
 ;;; ===============
 
@@ -570,6 +612,12 @@ or upper case.)~2%")
       (make-instance '<rescue-env>
         :nav-graph (apply 'make-graph nav-graph)
         :home-nodes home-nodes))))
+        
+(defun make-rescue-env (model)
+(destructuring-bind (&key nav-graph home-node) model
+  (make-instance '<rescue-env>
+    :nav-graph (apply 'make-graph nav-graph)
+    :home-node home-node)))
 
 (defun make-rescue-env-1 ()
-  (load-rescue-env "rescue-scenario-01.lisp"))
+  (load-rescue-env "model-01.lisp"))

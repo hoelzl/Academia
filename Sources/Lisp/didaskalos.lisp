@@ -1,70 +1,44 @@
 (in-package #:academia-prog)
 
+;;deprecated, write these vars out here
 (defvar *experiment-kind* :rescue) ;; :waste or :rescue
 (defvar *environment-type* :small)
 (defvar *use-complex-environment* nil)
-(defvar *environment* nil)
 
-(defvar *program* (ecase *experiment-kind*
-                    (:rescue 'random-rescue)
-                    (:waste 'academia-robot-prog)))
+(defvar *environment* nil)
+(defvar *environment-generator* (lambda () nil))
+(defvar *episode-count* 100)
+(defvar *episode-length* 100)
+(defvar *featurizers* nil)
+(Defvar *bucket-functions* nil)
+
+(defvar *program* nil)
 
 ;;; Possible values: :random, :epsilon, :boltzman
 (defvar *exploration-strategy* :random)
 
-(defun make-new-environment (&optional (kind *experiment-kind*)
-                                       (type *environment-type*)
-                                       (complexp *use-complex-environment*))
-  (setf *experiment-kind* kind)
-  (setf *environment-type* type)
-  (setf *use-complex-environment* complexp)
-  (setf *program* (ecase *experiment-kind*
-                    (:rescue 'random-rescue)
-                    (:waste 'academia-robot-prog)))
-  (ecase kind
-    ((:waste)
-     (ecase type
-       ((:hades) (make-instance '<hades-env>))
-       ((:small) (if complexp
-                     (make-waste-env-1)
-                     (make-waste-env-0)))
-       ((:medium) (if complexp
-                      (make-waste-env-3)
-                      (make-waste-env-2)))
-       ((:large) (if complexp
-                     (make-waste-env-5)
-                     (make-waste-env-4)))
-       ((:maze :labyrinth) (make-waste-env-6))))
-    ((:rescue)
-     (make-rescue-env-1))))
+(defun setup-experiment (environment-generator program episode-count episode-length featurizers bucket-functions)
+    (setf *environment-generator* environment-generator)
+    (setf *environment* (funcall environment-generator))
+    (setf *program* program)
+    (setf *episode-count* episode-count)
+    (setf *episode-length* episode-length)
+    (setf *featurizers* featurizers)
+    (setf *bucket-functions* bucket-functions)
+    *environment*)
+    
+(defun make-new-environment ()
+    (setf *environment* (funcall *environment-generator*))
+    *environment*)
+    
+(defun update-environment (environment)
+    (setf *environment* environment))
 
 (defun number-of-episodes ()
-  (ecase *environment-type*
-    ((:hades) most-positive-fixnum)
-    ((:small) 1500)
-    ((:medium) 2500)
-    ((:large) 10000)
-    ((:maze :labyrinth) 2500)))
+  *episode-count*)
 
 (defun max-steps-per-episode ()
-  #+ (or)
-  (let ((base-size
-          (ecase *environment-type*
-            ((:hades) most-positive-fixnum)
-            ((:small)
-             (if (eq *exploration-strategy* :random)
-                 (if *use-complex-environment*  100 50)
-                 (if *use-complex-environment*  100 50)))
-            ((:medium)
-             (if (eq *exploration-strategy* :random)
-                 (if *use-complex-environment* 250  100)
-                 (if *use-complex-environment* 250  100)))
-            ((:large) (if *use-complex-environment*  500 250))
-            ((:maze :labyrinth) (if (eq *exploration-strategy* :random)
-                                     50 25)))))
-    (* base-size *step-number-multiplier*))
-  10)
-
+  *episode-length*)
 
 (defun initialize-environment (&optional (force t))
   (when (or force (not *environment*))
@@ -78,18 +52,10 @@
 (defparameter *hordq-discount* 1)
 
 (defun hordq-featurizer-for (algorithm kind)
-  (ecase kind
-    ((:waste)
-     (cdr (assoc algorithm *waste-featurizers*)))
-    ((:rescue)
-     (cdr (assoc algorithm *rescue-featurizers*)))))
+     (cdr (assoc algorithm *featurizers*)))
 
 (defun hordq-bucket-function-for (algorithm kind)
-  (ecase kind
-    ((:waste)
-     (cdr (assoc algorithm *waste-bucket-functions*)))
-    ((:rescue)
-     (cdr (assoc algorithm *rescue-bucket-functions*)))))
+     (cdr (assoc algorithm *bucket-functions*)))
 
 (defun initialize-algorithms (&optional (algorithm-names *algorithm-names*)
                                         (hordq-learning-rate *hordq-learning-rate*)

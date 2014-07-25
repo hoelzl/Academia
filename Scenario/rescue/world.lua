@@ -28,24 +28,28 @@ tartaros.publish("makehome", tartaros.sisyphos_graph._makehome)
 
 --static world setup
 
-makenode(0, 0); label(0, 0, "1")
-makenode(0, 1); label(0, 1, "2")
-makenode(1, 0); label(1, 0, "4")
-makenode(1, 1); label(1, 1, "3")
+if true then
+    tartaros.sisyphos_graph._process(dofile("./model-01.lua"))
+else
+    makenode(0, 0); label(0, 0, "1")
+    makenode(0, 1); label(0, 1, "2")
+    makenode(1, 0); label(1, 0, "4")
+    makenode(1, 1); label(1, 1, "3")
 
-makeedge(getnode(0,0), getnode(0,1), 1)
-makeedge(getnode(0,1), getnode(0,0), 1)
+    makeedge(getnode(0,0), getnode(0,1), 1)
+    makeedge(getnode(0,1), getnode(0,0), 1)
 
-makeedge(getnode(0,0), getnode(1,0), 1)
-makeedge(getnode(1,0), getnode(0,0), 1)
+    makeedge(getnode(0,0), getnode(1,0), 1)
+    makeedge(getnode(1,0), getnode(0,0), 1)
 
-makeedge(getnode(0,1), getnode(1,1), 1)
-makeedge(getnode(1,1), getnode(0,1), 1)
+    makeedge(getnode(0,1), getnode(1,1), 1)
+    makeedge(getnode(1,1), getnode(0,1), 1)
+
+    makehome(0, 0)
+end
 
 makeobject(0, 1, {class="victim", id="v1", reward=1000})
 makeobject(1, 1, {class="rubble", id="r1"})
-
-makehome(0, 0)
 
 
 
@@ -334,7 +338,7 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {shout, forget, go, pickup, drop, nop},
+    motors = {shout, forget, pickup, drop, nop, tartaros.tantalos.combine({go, tartaros.tantalos.proxy(go, "localhost:55659")}, "go")},
     state = {
         position = getnode(0,0),
         damage = 0,
@@ -343,9 +347,30 @@ world.math1 = {
     time = function(body, world, clock)
         body.state.damage = body.state.damage + 1
     end,
-    psyche = "./mathetesneoteros.lua", --"./mathetes.lua"
+    psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
     obolos = {
         psyche = true
+    },
+    deras = {
+        robot = true,
+        respond = function(robot, body, msgtype, author, space, parameter)
+            if space == "stop" then
+                robot.wheels.set_velocity(0,0)
+            end
+            end,
+        motors = {
+            {
+                type = "go",
+                class = "motor",
+                run = function(robot, me, world, control)
+                    --print("go", serialize.literal(control))
+                    robot.wheels.set_velocity(-5, -5)
+                    robot.leds.set_single_color(13, "red")
+                    --print("gone")
+                    return me
+                end
+            }
+        }
     },
     print = explain
 }
@@ -363,7 +388,11 @@ metaworld.charon = {
             name = "Platon's Mind",
             address = "localhost:55559",
             run = function (worldpath, address)
-                return "sbcl --noinform --end-runtime-options --load "..worldpath.."../Lisp/platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
+                return "sbcl --noinform --end-runtime-options --load "..worldpath.."platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
+            end,
+            setup = function (recycledp, address)
+                --hexameter.tell("put", address, "didaskalos.relearn", {tartaros.sisyphos_graph.produce()})
+                hexameter.tell("put", address, "didaskalos.model", {{model=tartaros.sisyphos_graph.produce()}})
             end,
             halt = function (worldpath, address)
                 hexameter.tell("put", address, "charon.halt", {{charon="halting"}})
@@ -373,6 +402,12 @@ metaworld.charon = {
         }
     },
     avatar = "observer",
+    hexameter = {
+        socketcache = 10
+    }
+}
+
+metaworld.iason = {
     hexameter = {
         socketcache = 10
     }

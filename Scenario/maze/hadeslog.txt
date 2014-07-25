@@ -1,0 +1,45 @@
+::  Loading ./world.lua...
+%%% 	tantalos
+%%% 	sisyphos_grid
+::  Hades running. Please exit with Ctrl+C.
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: tocked (1)
+**  [tock status]     math2: not tocked    math1: not tocked    platon: tocked (1)
+**  [tock status]     math2: tocked (1)    math1: not tocked    platon: tocked (1)
+**  [tock status]     math2: tocked (1)    math1: not tocked    platon: tocked (1)
+**  [tock status]     math2: tocked (1)    math1: tocked (1)    platon: tocked (1)
+
+
+
+..  Starting discrete time period #1...
+..  .......................................
+    state of math2
+      position:  1,1
+      mood:      navigate
+      target:    0,0
+      attention: <clueless>
+      carrying:  0
+      collected: 0
+
+    state of math1
+      position:  0,1
+      mood:      navigate
+      target:    0,0
+      attention: <clueless>
+      carrying:  0
+      collected: 0
+
+    state of platon
+      { ["y"]=1, ["x"]=1, ["goal"]="live",  }
+    state of observ
+      { ["y"]=0, ["x"]=0,  }
+..  .......................................
+
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
+**  [tock status]     math2: not tocked    math1: not tocked    platon: not tocked
