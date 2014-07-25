@@ -429,17 +429,19 @@ cost is encountered after the path is completed."
 (defclass <rescue-env> (<fully-observable-env>)
   ((nav-graph :accessor nav-graph :initarg :nav-graph
               :initform (required-initarg :map))
-   (home-node :accessor home-node :initarg :home-node
-              :initform (required-initarg :home-node))
+   (home-nodes :accessor home-nodes :initarg :home-nodes
+               :initform (required-initarg :home-nodes))
    (max-damage :accessor max-damage :initarg :max-damage
                :initform 500)
    (invalid-action-cost :accessor invalid-action-cost :initarg :invalid-action-cost
                         :initform 2.0)))
 
 
-(defmethod initialize-instance :around ((self <rescue-env>) &key home-node nav-graph)
+(defmethod initialize-instance :around ((self <rescue-env>) &key home-nodes nav-graph)
   (call-next-method self
-                    :home-node (find-node nav-graph home-node)
+                    :home-nodes (mapcar (lambda (node)
+                                          (find-node nav-graph node))
+                                        home-nodes)
                     :nav-graph nav-graph))
 
 #||
@@ -464,7 +466,7 @@ cost is encountered after the path is completed."
   (defparameter *re*
     (make-instance '<rescue-env>
       :nav-graph *re-graph*
-      :home-node (find-node *re-graph* 3))))
+      :home-nodes (list (find-node *re-graph* 3)))))
 
 #+ (or)
 (sample-next *re* (sample-next *re* *rs* '(pickup m1)) '(go node-3))
@@ -483,7 +485,9 @@ cost is encountered after the path is completed."
          (from (rs-location state))
          (to (rs-location new-state))
          (edge (find to (node-edges from) :key #'edge-to))
-         (reward (if (and (same (rs-location new-state) (home-node env))
+         (reward (if (and (some (lambda (home-node)
+                                  (same home-node (rs-location new-state)))
+                                (home-nodes env))
                           (eql action 'drop))
                      1000
                      0)))
@@ -524,14 +528,17 @@ cost is encountered after the path is completed."
 			      (remove item (rs-objects state))))))))))
         (values new-state (rescue-reward env state action new-state)))))
 
+(defun pick-elt (list)
+  (nth (random (length list)) list))
+
 (defmethod sample-init ((env <rescue-env>))
   (let* ((graph (nav-graph env))
          ;; (node-1 (find-node graph 1))
          (node-2 (find-node graph 2))
          (node-3 (find-node graph 3)))
     (make-rescue-state
-     :location (home-node env)
-     :target-locations (list (home-node env))
+     :location (pick-elt (home-nodes env))
+     :target-locations (home-nodes env)
      :objects (list (make-victim :v1 node-2 24)
                     (make-rubble :r1 node-3)))))
 
@@ -555,14 +562,14 @@ or upper case.)~2%")
                            '((1 2) (2 1)
                              (1 4) (4 1)
                              (2 3) (3 2)))
-    :home-node 1))
+    :home-nodes '(1)))
 
 (defun load-rescue-env (file)
   (with-open-file (stream file :direction :input)
-    (destructuring-bind (&key nav-graph home-node) (read stream)
+    (destructuring-bind (&key nav-graph home-nodes) (read stream)
       (make-instance '<rescue-env>
         :nav-graph (apply 'make-graph nav-graph)
-        :home-node home-node))))
+        :home-nodes home-nodes))))
 
 (defun make-rescue-env-1 ()
   (load-rescue-env "rescue-scenario-01.lisp"))
