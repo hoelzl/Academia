@@ -338,7 +338,7 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {shout, forget, pickup, drop, nop, tartaros.tantalos.combine({go, tartaros.tantalos.proxy(go, "localhost:55659")}, "go")},
+    motors = {shout, forget, pickup, drop, nop, go}, --tartaros.tantalos.combine({go, tartaros.tantalos.proxy(go, "localhost:55659")}, "go")
     state = {
         position = getnode(0,0),
         damage = 0,
@@ -352,7 +352,7 @@ world.math1 = {
         psyche = true
     },
     deras = {
-        robot = true,
+        robot = "foot-bot",
         respond = function(robot, body, msgtype, author, space, parameter)
             if space == "stop" then
                 robot.wheels.set_velocity(0,0)
@@ -370,11 +370,28 @@ world.math1 = {
                     return me
                 end
             }
+        },
+        actuators = {
+            {"differential_steering", implementation="default"},
+            {"footbot_gripper", implementation="default"},
+            {"footbot_turret", implementation="default"},
+            {"leds", implementation="default", medium="leds"},
+            {"range_and_bearing", implementation="default"}
+        },
+        sensors = {
+            {"colored_blob_omnidirectional_camera", implementation="rot_z_only", medium="leds", show_rays="true"},
+            {"differential_steering", implementation="default"},
+            {"footbot_base_ground", implementation="rot_z_only"},
+            {"footbot_light", implementation="rot_z_only", show_rays="false"},
+            {"footbot_motor_ground", implementation="rot_z_only"},
+            {"footbot_proximity", implementation="default", show_rays="true"},
+            {"footbot_turret_encoder", implementation="default"},
+            {"range_and_bearing", implementation="medium", medium="rab", show_rays="false"}
         }
     },
     print = explain
 }
-
+tartaros.tantalos.mirror(world.math1, "localhost:55659")
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")
@@ -410,6 +427,15 @@ metaworld.charon = {
 metaworld.iason = {
     hexameter = {
         socketcache = 10
+    },
+    argos = {
+        arena = {
+            size = "12,12,12",
+            center = "0,0,0",
+            positional_grid_size = "10,10,10",
+            {"floor", id="floor", source="loop_functions", pixels_per_meter="100"},
+            {"light", id="light_0", position="5.9,  1.6, 2", orientation="0,0,0", color="red", intensity="10.0", medium="leds"}
+        }
     }
 }
 

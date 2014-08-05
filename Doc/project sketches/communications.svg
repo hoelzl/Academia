@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1202px" height="508px" viewBox="0 0 1202 508" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:sketch="http://www.bohemiancoding.com/sketch/ns">
+    <title>communications</title>
+    <description>Created with Sketch (http://www.bohemiancoding.com/sketch)</description>
+    <defs>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-1">
+            <stop stop-color="#6EFF45" offset="0%"></stop>
+            <stop stop-color="#004C0B" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-2">
+            <stop stop-color="#FFD2B0" offset="0%"></stop>
+            <stop stop-color="#756945" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-3">
+            <stop stop-color="#FF955C" offset="0%"></stop>
+            <stop stop-color="#FF0000" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-4">
+            <stop stop-color="#FACEEB" offset="0%"></stop>
+            <stop stop-color="#AE008F" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-5">
+            <stop stop-color="#FF8900" offset="0%"></stop>
+            <stop stop-color="#CD3B00" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-6">
+            <stop stop-color="#95CFFF" offset="0%"></stop>
+            <stop stop-color="#8C9AFF" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-7">
+            <stop stop-color="#90B0FF" offset="0%"></stop>
+            <stop stop-color="#00053A" offset="99.8819987%"></stop>
+            <stop stop-color="#000000" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="linearGradient-8">
+            <stop stop-color="#DFE84B" offset="0%"></stop>
+            <stop stop-color="#F5FF51" offset="1.06119792%"></stop>
+            <stop stop-color="#E0DF98" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" sketch:type="MSPage">
+        <g id="Rectangle-6-+-Psyche" sketch:type="MSLayerGroup" transform="translate(83.000000, 2.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-1)" sketch:type="MSShapeGroup" x="0" y="0" width="118" height="69"></rect>
+            <text id="Text" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="39" y="34">Charon</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Psyche" sketch:type="MSLayerGroup" transform="translate(1056.000000, 1.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-2)" sketch:type="MSShapeGroup" x="0" y="0" width="118" height="69"></rect>
+            <text id="Text" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="39" y="34">ARGoS</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-5-+-HADES" sketch:type="MSLayerGroup" transform="translate(431.000000, 164.000000)">
+            <rect id="Rectangle-5" stroke="#979797" fill="url(#linearGradient-3)" sketch:type="MSShapeGroup" x="0" y="0" width="159" height="79"></rect>
+            <text id="HADES" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="59" y="39">HADES</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Psyche" sketch:type="MSLayerGroup" transform="translate(83.000000, 167.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-4)" sketch:type="MSShapeGroup" x="0" y="0" width="159" height="72"></rect>
+            <text id="Psyche" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="60" y="35">Psyche</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Psyche" sketch:type="MSLayerGroup" transform="translate(779.000000, 164.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-5)" sketch:type="MSShapeGroup" x="0" y="0" width="159" height="72"></rect>
+            <text id="Iason" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="65" y="35">Iason</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Psyche" sketch:type="MSLayerGroup" transform="translate(1035.000000, 231.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-5)" sketch:type="MSShapeGroup" x="0" y="0" width="159" height="72"></rect>
+            <text id="&quot;Argonaut&quot;" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" sketch:alignment="middle" fill="#000000">
+                <tspan x="50.8886719" y="30">"</tspan>
+                <tspan x="55.1484375" y="30">Argonaut"</tspan>
+                <tspan x="7.13964844" y="44">(Argos Controller for Iason)</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Text" sketch:type="MSLayerGroup" transform="translate(83.000000, 341.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-6)" sketch:type="MSShapeGroup" x="0" y="0" width="103" height="79"></rect>
+            <text id="Text" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="8" y="39">Didaskalos/HRL</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Orpheus" sketch:type="MSLayerGroup" transform="translate(451.000000, 423.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-7)" sketch:type="MSShapeGroup" x="0" y="0" width="118" height="85"></rect>
+            <text id="Orpheus" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="36" y="42">Orpheus</tspan>
+            </text>
+        </g>
+        <g id="Rectangle-6-+-Orpheus" sketch:type="MSLayerGroup" transform="translate(403.000000, 303.000000)">
+            <rect id="Rectangle-6" stroke="#979797" fill="url(#linearGradient-8)" sketch:type="MSShapeGroup" x="0" y="0" width="214" height="60"></rect>
+            <text id="EuryDike" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" sketch:alignment="middle" fill="#000000">
+                <tspan x="82.6601562" y="29">EuryDike</tspan>
+                <tspan x="9.95410156" y="43">(Hexamater/Pentameter Translation)</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(242.000000, 190.000000)">
+            <path d="M0.125,16.5 L185.472656,16.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M11.725,19.5 C7.945,18.45 4.705,17.55 0.925,16.5 C4.705,15.45 7.945,14.55 11.725,13.5" stroke="#000000"></path>
+            <path id="Path-1-decoration-2" d="M174.325,19.5 C178.105,18.45 181.345,17.55 185.125,16.5 C181.345,15.45 178.105,14.55 174.325,13.5" stroke="#000000"></path>
+            <text id="Hexameter" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="65" y="11">Hexameter</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(590.000000, 189.000000)">
+            <path d="M0.125,16.5 L185.472656,16.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M11.725,19.5 C7.945,18.45 4.705,17.55 0.925,16.5 C4.705,15.45 7.945,14.55 11.725,13.5" stroke="#000000"></path>
+            <path id="Path-1-decoration-2" d="M174.325,19.5 C178.105,18.45 181.345,17.55 185.125,16.5 C181.345,15.45 178.105,14.55 174.325,13.5" stroke="#000000"></path>
+            <text id="Hexameter" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="65" y="11">Hexameter</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(199.000000, 58.000000)">
+            <path d="M0.5,0.5 L233.5,130.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M9.16825359,8.77172091 C6.37888094,6.01304389 3.98799011,3.64846359 1.19861746,0.889786568 C5.01117985,1.81459262 8.27909048,2.60728351 12.0916529,3.53208956" stroke="#000000"></path>
+            <path id="Path-1-decoration-2" d="M221.897271,127.461731 C225.709834,128.386537 228.977744,129.179228 232.790307,130.104034 C230.000934,127.345357 227.610043,124.980776 224.820671,122.222099" stroke="#000000"></path>
+            <text id="Hexameter" sketch:type="MSTextLayer" transform="translate(121.500000, 55.500000) rotate(30.000000) translate(-121.500000, -55.500000) " font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="92" y="59">Hexameter</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(135.000000, 70.000000)">
+            <path d="M1.5,0.5 L1.5,96.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M-1.5,85.6999999 C-0.45,89.4799999 0.45,92.72 1.5,96.5 C2.55,92.72 3.45,89.4800001 4.5,85.7000001" stroke="#000000"></path>
+            <text id="BASH" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="6" y="54">BASH</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(198.000000, 20.000000)">
+            <path d="M0.5,0.5 L248.5,140.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M236.934428,137.41606 C240.742318,138.359921 244.006224,139.168945 247.814114,140.112806 C245.038572,137.340214 242.659536,134.963706 239.883994,132.191114" stroke="#000000"></path>
+            <text id="BASH" sketch:type="MSTextLayer" transform="translate(120.500000, 54.500000) rotate(30.000000) translate(-120.500000, -54.500000) " font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="104" y="58">BASH</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(942.000000, 35.000000)">
+            <path d="M0.5,144.5 L116.5,0.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M111.489742,11.5018062 C113.043356,7.89942024 114.375025,4.81166088 115.92864,1.20927496 C112.739642,3.49426883 110.006216,5.45283501 106.817219,7.73782888" stroke="#000000"></path>
+            <text id="BASH" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="20" y="70">BASH</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(1114.000000, 70.000000)">
+            <path d="M1.5,-0.5 L1.5,159.050781" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M-1.5,147.7 C-0.45,151.48 0.45,154.72 1.5,158.5 C2.55,154.72 3.45,151.48 4.5,147.7" stroke="#000000"></path>
+            <path id="Path-1-decoration-2" d="M-1.5,11.0999999 C-0.45,7.31999991 0.45,4.07999995 1.5,0.3 C2.55,4.08000005 3.45,7.32000009 4.5,11.1000001" stroke="#000000"></path>
+            <text id="ARGoS" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="7" y="57">ARGoS</tspan>
+                <tspan x="7" y="71">internal</tspan>
+                <tspan x="7" y="85">communication</tspan>
+                <tspan x="7" y="99">(includes</tspan>
+                <tspan x="7" y="113">instantiation)</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(0.000000, 53.000000)">
+            <path d="M84.5,-0.5 C84.5,-0.5 38.0390625,-0.5 38.0390625,12.6210938 L38.0390625,304.898438 C38.0390628,334.492187 84.5,333.5 84.5,333.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M72.3924793,335.680317 C76.3600705,335.072246 79.7079111,334.420484 83.5508716,333.50212 C79.8277308,332.323905 76.7189119,331.18879 73.1894105,329.733477" stroke="#000000"></path>
+            <text id="BASH" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="0" y="157">BASH</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(135.000000, 241.000000)">
+            <path d="M1.5,0.5 L1.5,96.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M-1.5,85.6999999 C-0.45,89.4799999 0.45,92.72 1.5,96.5 C2.55,92.72 3.45,89.4800001 4.5,85.7000001" stroke="#000000"></path>
+            <text id="Hexameter" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="6" y="54">Hexameter</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(510.000000, 242.000000)">
+            <path d="M0.5,0.5 L0.5,60.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M-2.5,12.0999999 C-1.45,8.31999991 -0.55,5.07999995 0.5,1.3 C1.55,5.08000005 2.45,8.32000009 3.5,12.1000001" stroke="#000000"></path>
+            <text id="Hexameter" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="6" y="34">Hexameter</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(510.000000, 363.000000)">
+            <path d="M0.5,0.5 L0.5,60.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M-2.5,12.0999999 C-1.45,8.31999991 -0.55,5.07999995 0.5,1.3 C1.55,5.08000005 2.45,8.32000009 3.5,12.1000001" stroke="#000000"></path>
+            <text id="Pentameter" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="6" y="34">Pentameter</tspan>
+            </text>
+        </g>
+        <g id="Path-1-+-Hexameter" sketch:type="MSLayerGroup" transform="translate(938.000000, 214.000000)">
+            <path d="M0.5,0.5 L97.4726562,58.5" id="Path-1" stroke="#000000" sketch:type="MSShapeGroup"></path>
+            <path id="Path-1-decoration-1" d="M8.91532176,9.02891304 C6.21025754,6.18751757 3.89163125,3.75203584 1.18656712,0.910640429 C4.96956232,1.94979707 8.21212973,2.84050282 11.9951248,3.8796594" stroke="#000000"></path>
+            <path id="Path-1-decoration-2" d="M85.8108395,55.020641 C89.5938347,56.0597977 92.8364021,56.9505034 96.6193973,57.9896601 C93.9143333,55.1482647 91.5957069,52.712783 88.8906429,49.8713876" stroke="#000000"></path>
+            <text id="Hexameter" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+                <tspan x="3" y="46">Hexameter</tspan>
+            </text>
+        </g>
+        <text id="BASH-measn-the-progr" sketch:type="MSTextLayer" font-family="Helvetica" font-size="12" font-weight="normal" fill="#000000">
+            <tspan x="420" y="10">BASH measn the program automatically starts respective program via shell command;</tspan>
+            <tspan x="420" y="24">Hexameter/Pentameter connections always transfer information both ways, the</tspan>
+            <tspan x="420" y="38">direction of the arrow just indicates which component takes the initiative (i.e. sends the requests)</tspan>
+        </text>
+    </g>
+</svg>

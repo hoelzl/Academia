@@ -1,0 +1,12 @@
+Hexameter -- general purpose protocol based on SCEL primtives, implementations available in Lua and Lisp, uses external library ZeroMQ
+GHOST (Hands-On SCEL Terminal) -- SCEL shell that allows the users to directly participate in Hexameter communications
+Pentameter -- JavaScript-frontend to the Hexameter protocol, some restrictions apply, requires running EuryDike servers, uses external library NullMQ
+EuryDike -- two-part service, translating Pentameter/NullMQ messages to Hexameter/ZeroMQ, parts used from NullMQ
+
+HADES (A Discrete-time Environment Simulator) -- World simulation (framework) handling time synchronization and agent/model specification
+Psyche -- robot controller working with HADES
+Orpheus -- HTML-based GUI to HADES, allowing users to control and observe the HADES world simulation, requires Pentameter
+Charon -- easy to use setup service for HADES and related components
+Didaskalos -- HRL frontend built for specific scenarios and HADES interaction, written in Lisp
+
+Iason -- setup and management service for ARGoS simulations based on HADES-style world definitions
