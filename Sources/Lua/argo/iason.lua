@@ -14,7 +14,7 @@ local show      = serialize.presentation
 
 --using globals here, it, there, world, metaworld, iason
 
-local parameters = ostools.parametrize(arg, {}, function(a,argument,message) print(a, argument, message) end)
+local parameters = ostools.parametrize(arg, {}, function(a, argument, message) print(a, argument, message) end)
 
 if parameters.H or parameters.h or parameters.help then
     io.write("TODO: Create help file. Please understand.")

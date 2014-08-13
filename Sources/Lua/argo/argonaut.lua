@@ -1,8 +1,11 @@
+--NOTE: This script is meant to be used with Iason, don't run as stand-alone!
+
 local hexameter = require "hexameter"
 local tartaros  = require "tartaros"
 
 local mapping = dofile(here.."./crew.lua")
 local next = {}
+local expectations = {}
 
 tartaros.setup(environment.tartaros)
 world = dofile(here.."./world.lua")
@@ -41,7 +44,24 @@ function init()
                                 if item.type and (motor.type == item.type) then
                                     table.insert(next, function (robot)
                                         motor.run(robot, body, world, item.control or {})
-                                        hexameter.tell("put", iason, "finished", {{id = item.id}})
+                                        if motor.expect then
+                                            table.insert(expectations, {
+                                                condition = function (robot)
+                                                    return motor.expect(robot, body, world, item.control or {})
+                                                end,
+                                                update = function (robot)
+                                                    if motor.update then
+                                                        motor.update(robot, body, world, item.control or {})
+                                                    end
+                                                end,
+                                                consequence = function (robot)
+                                                    io.write("[ROBO] ", robot.id, " finished action ", item.id, "\n")
+                                                    hexameter.tell("put", iason, "finished", {{id = item.id}})
+                                                end
+                                            })
+                                        else
+                                            hexameter.tell("put", iason, "finished", {{id = item.id}})
+                                        end
                                     end)
                                 end
                             end
@@ -67,6 +87,14 @@ end
 function step()
     for a,action in ipairs(next) do
         action(robot)
+    end
+    for e,expectation in ipairs(expectations) do
+        if expectation.condition(robot) then
+            expectation.consequence(robot)
+            expectations[e] = nil
+        else
+            expectation.update(robot)
+        end
     end
     next = {}
     if me then

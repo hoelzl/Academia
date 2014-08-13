@@ -363,11 +363,66 @@ world.math1 = {
                 type = "go",
                 class = "motor",
                 run = function(robot, me, world, control)
-                    --print("go", serialize.literal(control))
-                    robot.wheels.set_velocity(-5, -5)
+                    robot.colored_blob_omnidirectional_camera.enable()
+                    --io.write("[ROBO] axis length: ", robot.wheels.axis_length, "\n")
+                    for name,value in ipairs(robot.colored_blob_omnidirectional_camera) do
+                        io.write("[ROBO] ", me.name, ": (", value.color.red, ",", value.color.blue, ",", value.color.blue, ") @ ", value.angle, "\n")
+                    end
+                    --print("go from", serialize.literal(me.state.position), "to", serialize.literal(control))
+                    if not (type(control.to) == "table") then
+                        control.to = lookup(tostring(control.to))
+                    end
+                    if (type(control.to) == "table") and control.to.x and control.to.y then
+                        local target = getnode(control.to)
+                        local route = getedge(me.state.position, target)
+                        if route then
+                            me.state.togo = {x=target.x - me.state.position.x, y=target.y - me.state.position.y, turned = {x = false, y = false}}
+                            me.state.position = target
+                            --print("thus", serialize.literal(me.state.togo))
+                        else
+                            me.state.togo = {noroute = true}
+                        end
+                    end                    
+                    --robot.wheels.set_velocity(-50, -50)
                     robot.leds.set_single_color(13, "red")
-                    --print("gone")
+                    --io.write("[ROBO] go\n")
                     return me
+                end,
+                update = function(robot, me, world, control)
+                    local standard_velocity = 0.5 -- in m/s
+                    local argos_ticks_per_second = 8 --must be in sync with actual setting, IASON currently defaults to 8 --TODO: allow motor to read this from somewhere
+                    --io.write("[ROBO] update\n")
+                    --io.write("[ROBO] update with ", serialize.literal(me.state.togo), "\n")
+                    for _,dimension in ipairs({{name="x", turnaround=-0.25}, {name="y", turnaround=0.25}}) do
+                        local d = dimension.name
+                        local a = dimension.turnaround
+                        if me.state.togo and not me.state.togo.noroute then
+                            if not me.state.togo.turned[d] then
+                                robot.wheels.set_velocity(a*robot.wheels.axis_length*math.pi*argos_ticks_per_second, -a*robot.wheels.axis_length*math.pi*argos_ticks_per_second)
+                                me.state.togo.turned[d] = true
+                                return true
+                            elseif not (math.abs(me.state.togo[d]) < 0.2) then
+                                local s = (me.state.togo[d] > 0) and 1 or -1 --cannot be zero because of previous condition
+                                robot.wheels.set_velocity(s*standard_velocity*100, s*standard_velocity*100)
+                                me.state.togo[d] = me.state.togo[d] - s*(standard_velocity/argos_ticks_per_second) --distance per second / ticks per second = distance per tick
+                                return true
+                            end
+                        end
+                    end
+                end,
+                expect = function(robot, me, world, control)
+                    --io.write("check\n")
+                    if me.state.togo.noroute then
+                        return true
+                    end
+                    if me.state.togo.turned.x and me.state.togo.turned.y and (math.abs(me.state.togo.x) < 0.2) and (math.abs(me.state.togo.y) < 0.2) then
+                        me.state.togo = nil
+                        robot.wheels.set_velocity(0,0)
+                        --io.write("true\n")
+                        return true
+                    end
+                    --io.write("false: ", me.state.togo.x, " ", me.state.togo.y, "\n")
+                    return false
                 end
             }
         },
@@ -434,7 +489,9 @@ metaworld.iason = {
             center = "0,0,0",
             positional_grid_size = "10,10,10",
             {"floor", id="floor", source="loop_functions", pixels_per_meter="100"},
-            {"light", id="light_0", position="5.9,  1.6, 2", orientation="0,0,0", color="red", intensity="10.0", medium="leds"}
+            {"light", id="light_0", position="5.0,-5.0, 2", orientation="0,0,0", color="red", intensity="10.0", medium="leds"},
+            {"light", id="light_1", position="5.0, 5.0, 2", orientation="0,0,0", color="green", intensity="10.0", medium="leds"},
+            {"light", id="light_2", position="-5.0,5.0, 2", orientation="0,0,0", color="blue", intensity="10.0", medium="leds"},
         }
     }
 }
