@@ -357,7 +357,7 @@ world.math1 = {
             if space == "stop" then
                 robot.wheels.set_velocity(0,0)
             end
-            end,
+        end,
         motors = {
             {
                 type = "go",
@@ -365,8 +365,14 @@ world.math1 = {
                 run = function(robot, me, world, control)
                     robot.colored_blob_omnidirectional_camera.enable()
                     --io.write("[ROBO] axis length: ", robot.wheels.axis_length, "\n")
+                    --io.write("{ROBO} options ")
+                    --for name,value in ipairs(robot.light) do
+                    --    io.write(name, ":", value.value, "@", value.angle)
+                    --end
+                    --io.write("\n")
+                    --print("!!!!!!", #robot.colored_blob_omnidirectional_camera)
                     for name,value in ipairs(robot.colored_blob_omnidirectional_camera) do
-                        io.write("[ROBO] ", me.name, ": (", value.color.red, ",", value.color.blue, ",", value.color.blue, ") @ ", value.angle, "\n")
+                        io.write("[ROBO] ", me.name, ": (", value.color.red, ",", value.color.blue, ",", value.color.green, ") @ ", value.angle, "\n")
                     end
                     --print("go from", serialize.literal(me.state.position), "to", serialize.literal(control))
                     if not (type(control.to) == "table") then
@@ -384,7 +390,7 @@ world.math1 = {
                         end
                     end                    
                     --robot.wheels.set_velocity(-50, -50)
-                    robot.leds.set_single_color(13, "red")
+                    robot.leds.set_single_color(13, "yellow")
                     --io.write("[ROBO] go\n")
                     return me
                 end,
@@ -446,10 +452,32 @@ world.math1 = {
     },
     print = explain
 }
-tartaros.tantalos.mirror(world.math1, "localhost:55659")
+tartaros.tantalos.mirror(world.math1, "localhost:55655")
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")
+
+world.light1 = {
+    name = "light1",
+    state = {
+        color = "red",
+        position = {x = 1.0, y = -0.0},
+    },
+    deras = {
+        robot = "foot-bot",
+        actuators = {
+            {"leds", implementation="default", medium="leds"},
+        },
+        init = function(robot, me)
+            robot.leds.set_single_color(13, me.state.color or "red")
+            return me
+        end,
+    },
+    tocked = "auto"
+}
+tartaros.clone("light1", "light2", {state = {color = "green", position = {x = 5.0, y = 5.0}}})
+tartaros.clone("light1", "light3", {state = {color = "blue", position = {x = -5.0, y = 5.0}}})
+
 
 metaworld.charon = {
     addresses = "localhost:55555,...,localhost:55565,-localhost:55559",

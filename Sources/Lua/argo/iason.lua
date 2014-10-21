@@ -129,6 +129,8 @@ local function robot(type, preferrednumber)
     end
 end
 
+local me = address(environment.iason)
+
 
 -- copy world file -----------------------------------------------------------------------------------------------------
 
@@ -199,7 +201,7 @@ local time = function ()
         end
     end
     return function(msgtype, author, space, parameter)
-        --print("received ", msgtype, space)
+        print("received ", msgtype, space)
         local response = {}
         if space == "motors" then
             for i,item in ipairs(parameter) do
@@ -334,7 +336,6 @@ local time = function ()
 end
 
 --set up iason's network communication
-local me = address(environment.iason)
 hexameter.init(me, time, nil, nil, environment.hexameter)
 io.write("**  Iason is listening on "..me..(environment.servermode and " in server mode " or "").."\n")
 
@@ -380,6 +381,7 @@ if environment.config then
     configuration:close()
 else
     iason.argos = iason.argos or {}
+    iason.defaultrobot = iason.defaultrobot or {}
     local scalefactor = iason.worldscale or 1
     local function derivetype(body)
         if type(body.deras.robot) == "string" then

@@ -6,6 +6,7 @@ local tartaros  = require "tartaros"
 local mapping = dofile(here.."./crew.lua")
 local next = {}
 local expectations = {}
+local started = false
 
 tartaros.setup(environment.tartaros)
 world = dofile(here.."./world.lua")
@@ -85,6 +86,12 @@ function init()
 end
 
 function step()
+    if not started then
+        started = true
+        if me then
+            hexameter.tell("put", iason, "events.robot.start", {{id = robot.id}})
+        end
+    end
     for a,action in ipairs(next) do
         action(robot)
     end
@@ -110,6 +117,7 @@ function reset()
         body.deras.reset(robot, body)
     end
     if me then
+        started = false
         hexameter.tell("put", iason, "events.robot.reset", {{id = robot.id}})
     end
 end
