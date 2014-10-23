@@ -24,7 +24,7 @@ end
 
 it= parameters.world and ostools.expand(parameters.world)
     or parameters[1] and ostools.expand(parameters[1])
-    or ostools.usrerr("Please pass a world file as a parameter to Charon")
+    or ostools.usrerr("Please pass a world file as a parameter to Iason")
 
 
 --handy for debugging
@@ -195,18 +195,19 @@ local time = function ()
         for _,_ in pairs(running) do
             allfinished = false
         end
+        --print("running", serialize.literal(running))
         if allfinished then
             --hexameter.tell("put", "localhost:55555", "effect.tocks", {{}})
             publish("finished", {finished = true})
         end
     end
     return function(msgtype, author, space, parameter)
-        print("received ", msgtype, space)
+        --print("received ", msgtype, space)
         local response = {}
         if space == "motors" then
             for i,item in ipairs(parameter) do
                 local available = false
-                for _,motor in pairs((world[item.body].deras or {}).motors or {}) do
+                for _,motor in pairs((world[item.body].deras or {}).externalmotors or {}) do
                     if motor.type == item.type then
                         available = true
                     end
@@ -227,16 +228,19 @@ local time = function ()
         if space == "sensors" then
             for i,item in ipairs(parameter) do
                 local available = false
-                for _,sensor in pairs((world[item.body].deras or {}).sensors or {}) do
+                for _,sensor in pairs((world[item.body].deras or {}).externalsensors or {}) do
                     if sensor.type == item.type then
                         available = true
                     end
                 end
                 if available then
-                    --TODO: add code
+                    local result = hexameter.ask(msgtype, routes[item.body], "sensors", {item})[1].value
+                    table.insert(response, result)
+                    io.write("[IASN] delivered sensor action for ", item.body, " to ", routes[item.body], "\n")
+                    --io.write("[IASN] delivered sensor action for ", item.body, " to ", routes[item.body], " with result ", serialize.literal(result), "\n")
                 else
                     table.insert(response, {status = "unavailable"})
-                    io.write("[IASN] ignored motor action for ", item.body, " (no argos sensor ", item.type, " available)\n")
+                    io.write("[IASN] ignored sensor action for ", item.body, " (no argos sensor ", item.type, " available)\n")
                 end
             end
         end
@@ -250,6 +254,7 @@ local time = function ()
                         end
                         if finished[item.id] and (not running[item.id]) then
                             table.insert(response, {id = item.id, value = item.id})
+                            --io.write("[IASN] answered to action ", id, " with result ", serialize.literal(finished[item.id]), "\n")
                             if msgtype == "get" then
                                 finished[item.id] = nil
                             end
@@ -396,6 +401,18 @@ else
         return "foot-bot"
     end
     local function deriveposition(body)
+        if body.deras.position then
+            if (type(body.deras.position) == "table") and body.deras.position.x and body.deras.position.y then
+                return body.deras.position.x .. "," .. body.deras.position.y .. ",0"
+            end
+            if (type(body.deras.position) == "function") then
+                local x, y = body.deras.position(body)
+                if (type(x) == "table") then
+                    x, y = x.x, x.y
+                end
+                return x .. "," .. y .. ",0"
+            end
+        end
         if body.state and body.state.position then
             if (type(body.state.position) == "table") and body.state.position.x and body.state.position.y then
                 return (body.state.position.x * scalefactor) .. "," .. (body.state.position.y * scalefactor) .. ",0"
@@ -407,9 +424,24 @@ else
         return "0,0,0"
     end
     local function deriveorientation(body)
+        if body.deras.orientation then
+            if (type(body.deras.orientation) == "table") and body.deras.orientation.x and body.deras.orientation.y then
+                return "0," .. body.deras.orientation.y .. "," .. body.deras.orientation.x
+            end
+            if (type(body.deras.orientation) == "function") then
+                local z, y, x = body.deras.orientation(body)
+                z = z or 0
+                y = y or 0
+                x = x or 0
+                if (type(z) == "table") then
+                    z, y, x = z.z or 0, z.y or 0, z.x or 0
+                end
+                return z .. "," .. y .. "," .. x
+            end
+        end
         if body.state and body.state.orientation then
             if (type(body.state.orientation) == "table") and body.state.orientation.x and body.state.orientation.y then
-                return "0," .. (body.state.position.y) .. "," .. (body.state.position.x)
+                return "0," .. (body.state.orientation.y) .. "," .. (body.state.orientation.x)
             end
         end
         if iason.defaultrobot and iason.defaultrobot.orientation then

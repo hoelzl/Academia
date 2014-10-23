@@ -358,7 +358,7 @@ world.math1 = {
                 robot.wheels.set_velocity(0,0)
             end
         end,
-        motors = {
+        externalmotors = {
             {
                 type = "go",
                 class = "motor",

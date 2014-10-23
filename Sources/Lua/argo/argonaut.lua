@@ -19,29 +19,27 @@ function init()
         io.write("[CTRL] Robot ", robot.id, " running as ", body and body.name or "???", " @ ", me, "\n")
         local time = function()
             return function (msgtype, author, space, parameter)
-                --print("[HEXA] Received", parameter, "@", space)
+                --print("[HEXA]", robot.id, " Received ", serialize.literal(parameter), "@", space)
                 local response = {}
-                if space == "gogogo" then
-                    robot.wheels.set_velocity(5,5)
-                end
                 if space == "sensors" then
-                    if body and body.deras and body.deras.sensors then
+                    if body and body.deras and body.deras.externalsensors then
                         for i,item in ipairs(parameter) do
-                            for _,sensor in pairs(body.deras.sensors) do
+                            for _,sensor in pairs(body.deras.externalsensors) do
                                 if item.type and (sensor.type == item.type) then
                                     table.insert(response, {
                                         body=item.body,
                                         type=sensor.type,
                                         value=sensor.measure(robot, body, world, item.control or {})})
+                                    --io.write("[ROBO] ", robot.id, " finished sensor action\n")
                                 end
                             end
                         end
                     end
                 end
                 if space == "motors" then
-                    if body and body.deras and body.deras.motors then
+                    if body and body.deras and body.deras.externalmotors then
                         for i,item in ipairs(parameter) do
-                            for _,motor in pairs(body.deras.motors) do
+                            for _,motor in pairs(body.deras.externalmotors) do
                                 if item.type and (motor.type == item.type) then
                                     table.insert(next, function (robot)
                                         motor.run(robot, body, world, item.control or {})
@@ -56,11 +54,12 @@ function init()
                                                     end
                                                 end,
                                                 consequence = function (robot)
-                                                    io.write("[ROBO] ", robot.id, " finished action ", item.id, "\n")
+                                                    --io.write("[ROBO] ", robot.id, " finished action ", item.id, " after a while\n")
                                                     hexameter.tell("put", iason, "finished", {{id = item.id}})
                                                 end
                                             })
                                         else
+                                            --io.write("[ROBO] ", robot.id, " finished action ", item.id, " instantly\n")
                                             hexameter.tell("put", iason, "finished", {{id = item.id}})
                                         end
                                     end)
@@ -75,7 +74,7 @@ function init()
                 return response
             end
         end
-        hexameter.init(me, time)
+        hexameter.init(me, time, nil, nil, {socketcache = 10})
     end
     if body and body.deras and body.deras.init then
         body.deras.init(robot, body)
@@ -85,13 +84,14 @@ function init()
     end
 end
 
-function step()
+function step()    
     if not started then
         started = true
         if me then
             hexameter.tell("put", iason, "events.robot.start", {{id = robot.id}})
         end
     end
+    
     for a,action in ipairs(next) do
         action(robot)
     end
@@ -104,8 +104,11 @@ function step()
         end
     end
     next = {}
-    if me then
-        hexameter.respond(4)
+    if me then        
+        local succ, err = pcall(function() hexameter.respond(4) end)
+        if not succ then
+            io.write("[ROBO] ", robot.id, " A fatal error occured: ", err, "\n")
+        end
     end
     if body and body.deras and body.deras.step then
         body.deras.step(robot, body)
