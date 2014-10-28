@@ -1,0 +1,1 @@
+java -Djava.library.path=/usr/local/lib/ -jar ./ajent.jar

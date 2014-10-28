@@ -11,6 +11,7 @@ local started = false
 tartaros.setup(environment.tartaros)
 world = dofile(here.."./world.lua")
 metaworld = getmetatable(world or {})
+metaworld.argonaut = metaworld.argonaut or {}
 
 function init()
     body = mapping[robot.id] and world[mapping[robot.id].name] or nil
@@ -74,7 +75,7 @@ function init()
                 return response
             end
         end
-        hexameter.init(me, time, nil, nil, {socketcache = 10})
+        hexameter.init(me, time, nil, nil, metaworld.argonaut.hexameter)
     end
     if body and body.deras and body.deras.init then
         body.deras.init(robot, body)

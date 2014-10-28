@@ -234,7 +234,7 @@ local time = function ()
                     end
                 end
                 if available then
-                    local result = hexameter.ask(msgtype, routes[item.body], "sensors", {item})[1].value
+                    local result = hexameter.ask(msgtype, routes[item.body], "sensors", {item})[1]
                     table.insert(response, result)
                     io.write("[IASN] delivered sensor action for ", item.body, " to ", routes[item.body], "\n")
                     --io.write("[IASN] delivered sensor action for ", item.body, " to ", routes[item.body], " with result ", serialize.literal(result), "\n")

@@ -79,7 +79,7 @@ world.math1 = {
         end
     end,
     obolos = {
-        psyche = true,
+        --psyche = true,
     },
     deras = {
         robot = "foot-bot",

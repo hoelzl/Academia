@@ -42,45 +42,6 @@ world.math1 = {
     sensors = {proximity},
     motors = {setvelocity},
     state = {},
-    psyche = function(realm, me)
-        local SPEED = 5
-        return function(clock, body)
-            --NOTE: the code of this function is a direct adaptation of the ARGoS example
-            -- Search for the reading with the highest value
-        	value = -1 -- highest value found so far
-        	idx = -1   -- index of the highest value
-            local prox = hexameter.ask("get", realm, "sensors", {{body=body, type="proximity"}})[1].value
-        	for i=1,24 do
-        		if value < prox[i].value then
-        			idx = i
-        			value = prox[i].value
-        		end
-            end
-        	-- At this point, 'value' contains the highest proximity reading found
-         	-- and 'idx' contains the index of that sensor
-        	if value == 0 then
-        		-- The robot has no obstacles around, just go straight
-        		--robot.wheels.set_velocity(SPEED, SPEED)
-                hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=SPEED, right=SPEED}}})
-        	else
-        		-- The robot has obstacles, set wheels according to 'idx'
-        		if idx <= 12 then
-        			-- The closest obstacle is between 0 and 180 degrees: soft turn towards the right
-        			--robot.wheels.set_velocity(SPEED, (idx-1) * SPEED / 11)
-                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=SPEED, right=math.ceil((idx-1) * SPEED / 11)}}})
-                    
-        		else
-        			-- The closest obstacle is between 180 and 360 degrees: soft turn towards the left
-        			--robot.wheels.set_velocity((24-idx) * SPEED / 11, SPEED)
-                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=math.ceil((24-idx) * SPEED / 11), right=SPEED}}})
-                    
-        		end
-        	end
-        end
-    end,
-    obolos = {
-        psyche = true,
-    },
     deras = {
         robot = "foot-bot",
         externalmotors = {
@@ -135,7 +96,16 @@ tartaros.clone("math1", "math12")
 metaworld.charon = {
     addresses = "localhost:55555,...,localhost:55565,-localhost:55559",
     doomsday = 0,
-    ferry = {},
+    ferry = {
+        {
+            name = "Ajent",
+            address = "localhost:99999",
+            run = function (worldpath, address)
+                return "java -Djava.library.path=/usr/local/lib/ -jar "..worldpath.."ajent.jar"
+            end,
+            recycle = true --NOTE: You can only recycle Hexameter components!
+        }
+    },
     avatar = "observer",
     hexameter = {
         socketcache = 10
