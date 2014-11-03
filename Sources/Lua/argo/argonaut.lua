@@ -75,7 +75,7 @@ function init()
                 return response
             end
         end
-        hexameter.init(me, time, nil, nil, metaworld.argonaut.hexameter)
+        hexameter.init(me, time, nil, nil, environment.hexameter)
     end
     if body and body.deras and body.deras.init then
         body.deras.init(robot, body)

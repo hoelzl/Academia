@@ -1,0 +1,158 @@
+IASON
+
+Iason is a tool to run and manage robot ensembles using the ARGoS simulator (see http://iridia.ulb.ac.be/argos/ ).
+It is meant to work in conjunction with HADES and to allow to run HADES scenarios on ARGoS with little effort.
+
+
+
+TYPICAL EXECUTION:
+
+lua iason.lua worldfile.lua ~/tmp/
+lua charon.lua <world definition file> <temporary stage directory> [<parameters...>]
+
+
+
+COMMAND LINE OPTIONS:
+
+-h
+--help please
+Print this manual.
+
+--world
+Specify world file. Can also be specified by the first unnamed parameter.
+
+--stage
+Specify a directory in which Iason can create temporary files for the staging of the ARGoS run. Can also be specified
+by the second unnamed parameter.
+
+--controller [default: ...]
+Path to Lua script Iason can use to build the robot controller for ARGoS. If left empty (or given value "..."), Iason
+will use the "argonaut" controller that comes with this package, which uses the robot behavior specified in the
+respective sections of the world definition file (see below). This is usually what you want when you use Iason/HADES.
+Can also be specified by the third unnamed parameter.
+
+--addresses [default: localhost:55655,...,localhost:55695]
+Specify addresses available for Iason to use.
+[Comma-separated list of address names, "..." between commas means all addresses between the two surrounding ones,
+addresses prefixed with a "-" are left out]
+
+--ports
+Like addresses, but only takes number which it assumes to be ports on "localhost". Is overwritten by --addresses if
+both are specified
+
+--name
+--iason
+Specific address for Iason to run on (if left out, one is chosen from the address pool defined by --addresses)
+
+--hexameter:* [e.g. --hexameter:socketcache 42]
+Set options to be passed on to the Hexameter protocol running on Iason (and Argonaut if used).
+
+-T
+"Dry run", i.e. do all the staging but don't run anything.
+
+
+
+PREREQUISITES:
+
+CHARON provides a front-end to the ARGoS simulator intended to be used with HADES components. It depends on a working
+setup for ARGoS (with GUI) and everything HADES depends on (see Charon's help file for more info on that).
+
+
+
+WORLD FILE SPECIFICATION:
+
+In addition to the world file definitions defined by HADES, Iason respects a few more entries in the world file. These
+are written inside the "deras" section of any of the world's bodies and the metaworld.iason section. For all other
+sections of the world definition file see Charon's manual, which can be accessed by calling `lua charon.lua -h`.
+
+For any body specified in the world table (e.g. world["robot1"]), Iason looks for additional information on that body's
+representation in ARGoS in a "deras" sub-entry to that body (e.g. world["robot1"].deras). These are mainly used by
+Argonaut to specify robot behavior. Argonaut provides a HADES-style motor/sensor interface, which allows HADES to
+delegate motor actions and sensor requests via Iason to an Argonaut instance, whose responsibility it is to translate
+the possibly more complex motor/sensor commands defined by HADES to the sensors and motors provided by ARGoS.
+    deras:
+        Additional data for Iason to instantiate and run this body inside ARGoS. The following options are available:
+            robot:
+                Type of robot to use for this body, e.g. "foot-bot". If left empty, Iason will ignore this body.
+            respond: [usually left empty]
+                A function to be called by Argonaut on otherwise un-handled incoming Hexameter messages. Allows to
+                specify arbitrary communication protocols for robots. The given function will be called with the
+                following 6 parameters:
+                    robot: ARGoS robot state as specified by ARGoS's Lua interface
+                    body: the current world table entry for the body
+                    msgtype, author, space, parameter: standard Hexameter message specification
+            externalmotors:
+                A list of HADES motors which are provided by the Argonaut instance running this component. The format
+                mimics HADES motor specifications:
+                    type: the name of the motor
+                    class = "motor" [this is fixed for motors]
+                    run:
+                        a function returning an updated data structure for the current body. NOTE: The given function
+                        will be called with the following 4 parameters:
+                            robot: ARGoS robot state as specified by ARGoS's Lua interface
+                            me, world, control: standard HADES motor.run function specification
+                    expect:
+                        a function checking if the current motor action has finished. This can be used to implement
+                        complex motors which consist of several atomic actions from an ARGoS perspective but are but
+                        one motor call from a HADES perspective. The given function will be called with the same
+                        arguments as the "run" function. It is expected to return true once the complex motor action
+                        is finished. If left empty, Argonaut will assume the motor action is finished immediately.
+                    update:
+                        a function to be called as long as the current motor action hasn't finished, to be used in
+                        conjunction with "expect". This can be used to adjust the robot state while running a complex
+                        motor action (see "expect"). The given function will be called with the same arguments as the
+                        "run" function. Its return value is ignored. If left empty, Argonaut will assume "do nothing".
+            externalsensors:
+                A list of HADES sensors which are provided by the Argonaut instance running this component. The format
+                mimics HADES sensor specifications:
+                    type: the name of the sensor
+                    class = "sensor" [this is fixed for sensors]
+                    measure:
+                        a function returning an arbitray table of measurements. NOTE: The given function
+                        will be called with the following 4 parameters:
+                            robot: ARGoS robot state as specified by ARGoS's Lua interface
+                            me, world, control: standard HADES sensor.measure function specification
+            actuators:
+                Definition of this body's robot's actuators in ARGoS. The value saved here is translated to the format
+                used by ARGoS using a lua2xml library. It can contain arbitrarily complex parts of the configuration
+                as string literals in XML format. See the ARGoS documenation for more information on valid definitions.
+            sensors:
+                The same as "actuators", only for ARGoS sensors.
+            position:
+                Defines the initial position of the robot in the ARGoS simulation. Can be given via a string of the
+                format ARGoS uses for positions (i.e. "1,2,3") OR  a table of the form {x=1, y=2, z=3} with missing
+                entries defaulting to 0 OR a function (taking no arguments) returning such a string or such a table or
+                up to three values to be interpreted as the x, y and z coordinates, respectively. If left empty, Iason
+                will try to deduce the robot's initial position based on the data it finds in the robot's
+                state.position field, e.g. world["robot1"].state.position, before trying to use a possibly available
+                default robot specification (see below). If everything fails, Iason uses "0,0,0".
+            orientation:
+                The same as "position", only for the orientation of the robot. NOTE: ARGoS specifies orientation values
+                in z,y,x order, which doesn't matter for table values, but a function returning a numerals will
+                specify the z-value of the orientation first (which is usually what you want).
+            
+If there is a metaworld table assigned, Iason will try to read a sub-table under the entry "iason", which may contain
+the following entries:
+    addresses: provide a default value for --addresses if not specified in the call
+    ports: provide a default value for --ports if not specified in the call
+    doomsday: provide a default value for --doomsday if not specified in the call
+    hexameter:
+        a table of options to be passed on to the Hexameter protocol of Iason and Argonaut. Acts as a default value if
+        none of the --hexameter:* parameters are provided.
+    defaultrobot:
+        A table containing various default values in case you want to specify various default values for robots whose
+        respective "deras" entries are incomplete. This feature is experimental and may be subject to change, not
+        recommended for productive use! Just copy the robot's tables in the world file!
+    worldscale:
+        If you want to Iason to derive your robots initial position from their state.position entries (see above), you
+        may want to specify a scale factor between your HADES coordinates and ARGoS coordinates. If left empty,
+        defaults to 1, obviously.
+    argos:
+        a table containing global specifications for the ARGoS configuration. Each sub-entry of this table corresponds
+        to a section of the ARGoS XML configuration file (i.e. the "*.argos" file). The content of each sub-entry will
+        be translated to XML using the lua2xml library, which means that it may contain arbitrarily complex XML in the
+        form of string literals (so you can just copy existing configurations). Available sub-entries are "framework",
+        "controllers", "arena", "physics_engines", "media" and "visualization". If you leave some of these out, Iason
+        may try to assign default values with varying results. Even when specified here, Iason WILL change the content
+        of "arena" and "controllers" sub-entries by adding the configuration elements for all specified robots from the
+        world file. Iason MAY add elements to make the data specified here confirm to XML and/or ARGoS requirements.

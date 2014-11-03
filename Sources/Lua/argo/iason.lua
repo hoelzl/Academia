@@ -1,6 +1,7 @@
 -- IASON Argos Setup
 here = string.match(arg[0], "^.*/") or "./"
 package.path = here.."?.lua;"
+    ..here.."lib/?.lua;"
     ..here.."../hades/?.lua;"
     ..here.."../hades/lib/?.lua;"
     ..here.."../hades/hexameter/?.lua;"
@@ -17,7 +18,8 @@ local show      = serialize.presentation
 local parameters = ostools.parametrize(arg, {}, function(a, argument, message) print(a, argument, message) end)
 
 if parameters.H or parameters.h or parameters.help then
-    io.write("TODO: Create help file. Please understand.")
+    local helpfile = assert(io.open(here.."help/iason.txt", "r"))
+    io.write(helpfile:read("*all"))
     io.write("\n")
     os.exit()
 end
@@ -52,9 +54,6 @@ environment = {
     controller = parameters.controller
         or parameters[3]
         or iason.controller
-        or nil,
-    template = parameters.template
-        or iason.template
         or nil,
     addresses =
         parameters.addresses and ostools.select(parameters.addresses)
@@ -348,7 +347,7 @@ io.write("**  Iason is listening on "..me..(environment.servermode and " in serv
 -- create argos controller ---------------------------------------------------------------------------------------------
 
 local script = nil
-if environment.controller then
+if environment.controller and not (environment.controller == "...") then
     local given = assert(io.open(there..environment.controller, "r"))
     script = given:read("*all")
     given:close()
@@ -402,20 +401,26 @@ else
     end
     local function deriveposition(body)
         if body.deras.position then
-            if (type(body.deras.position) == "table") and body.deras.position.x and body.deras.position.y then
-                return body.deras.position.x .. "," .. body.deras.position.y .. ",0"
+            if (type(body.deras.position) == "table") then
+                return (body.deras.position.x or 0) .. "," .. (body.deras.position.y or 0) .. "," .. (body.deras.position.z or 0) 
             end
             if (type(body.deras.position) == "function") then
-                local x, y = body.deras.position(body)
-                if (type(x) == "table") then
-                    x, y = x.x, x.y
+                local x, y, z = body.deras.position(body)
+                if (type(x) == "table") and (type(y) == "nil") and (type(z) == "nil") then
+                    x, y, z = x.x, x.y, x.z
                 end
-                return x .. "," .. y .. ",0"
+                if (type(x) == "string") and (type(y) == "nil") and (type(z) == "nil") then
+                    return x
+                end
+                return (x or 0) .. "," .. (y or 0) .. "," .. (z or 0)
+            end
+            if (type(body.deras.position) == "string") then
+                return body.deras.position
             end
         end
         if body.state and body.state.position then
             if (type(body.state.position) == "table") and body.state.position.x and body.state.position.y then
-                return (body.state.position.x * scalefactor) .. "," .. (body.state.position.y * scalefactor) .. ",0"
+                return (body.state.position.x * scalefactor) .. "," .. (body.state.position.y * scalefactor) .. "," .. ((body.state.position.z or 0) * scalefactor)
             end
         end
         if iason.defaultrobot and iason.defaultrobot.position then
@@ -425,23 +430,26 @@ else
     end
     local function deriveorientation(body)
         if body.deras.orientation then
-            if (type(body.deras.orientation) == "table") and body.deras.orientation.x and body.deras.orientation.y then
-                return "0," .. body.deras.orientation.y .. "," .. body.deras.orientation.x
+            if (type(body.deras.orientation) == "table") then
+                return (body.deras.orientation.z or 0) .. "," .. (body.deras.orientation.y or 0) .. "," .. (body.deras.orientation.x or 0)
             end
             if (type(body.deras.orientation) == "function") then
                 local z, y, x = body.deras.orientation(body)
-                z = z or 0
-                y = y or 0
-                x = x or 0
-                if (type(z) == "table") then
-                    z, y, x = z.z or 0, z.y or 0, z.x or 0
+                if (type(z) == "table") and (type(y) == "nil") and (type(x) == "nil") then
+                    x, y, z = x.x, x.y, x.z
                 end
-                return z .. "," .. y .. "," .. x
+                if (type(z) == "string") and (type(y) == "nil") and (type(x) == "nil") then
+                    return z
+                end
+                return (z or 0) .. "," .. (y or 0) .. "," .. (x or 0)
+            end
+            if (type(body.deras.orientation) == "string") then
+                return body.deras.orientation
             end
         end
         if body.state and body.state.orientation then
-            if (type(body.state.orientation) == "table") and body.state.orientation.x and body.state.orientation.y then
-                return "0," .. (body.state.orientation.y) .. "," .. (body.state.orientation.x)
+            if (type(body.state.orientation) == "table") and body.state.orientation.z then
+                return (body.state.orientation.z) .. "," .. (body.state.orientation.y or 0) .. "," .. (body.state.orientation.x or 0)
             end
         end
         if iason.defaultrobot and iason.defaultrobot.orientation then
