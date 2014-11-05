@@ -67,12 +67,12 @@ world.math1 = {
         		if idx <= 12 then
         			-- The closest obstacle is between 0 and 180 degrees: soft turn towards the right
         			--robot.wheels.set_velocity(SPEED, (idx-1) * SPEED / 11)
-                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=SPEED, right=math.ceil((idx-1) * SPEED / 11)}}})
+                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=SPEED, right=(idx-1) * SPEED / 11}}})
                     
         		else
         			-- The closest obstacle is between 180 and 360 degrees: soft turn towards the left
         			--robot.wheels.set_velocity((24-idx) * SPEED / 11, SPEED)
-                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=math.ceil((24-idx) * SPEED / 11), right=SPEED}}})
+                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=(24-idx) * SPEED / 11, right=SPEED}}})
                     
         		end
         	end
@@ -117,7 +117,7 @@ world.math1 = {
         orientation = function() return math.random(0, 360) end
     }
 }
-tartaros.tantalos.mirror(world.math1, "localhost:55655")
+tartaros.tantalos.project(world.math1, "localhost:55655")
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")

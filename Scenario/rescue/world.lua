@@ -2,6 +2,7 @@ local tartaros = require "tartaros"
 local world, metaworld = tartaros.create()
 tartaros.load("sisyphos_graph")
 tartaros.load("tantalos", true)
+local json = require "dkjson"
 
 local makenode = tartaros.sisyphos_graph.makenode
 local removenode = tartaros.sisyphos_graph.removenode
@@ -30,6 +31,9 @@ tartaros.publish("makehome", tartaros.sisyphos_graph._makehome)
 
 if true then
     tartaros.sisyphos_graph._process(dofile("./model-01.lua"))
+    --local graphfile = assert(io.open("./model-02.json", "r"))
+    --tartaros.sisyphos_graph._process(graphfile:read("*all"))
+    --graphfile:close()
 else
     makenode(0, 0); label(0, 0, "1")
     makenode(0, 1); label(0, 1, "2")
@@ -452,31 +456,10 @@ world.math1 = {
     },
     print = explain
 }
-tartaros.tantalos.mirror(world.math1, "localhost:55655")
+tartaros.tantalos.motormirror(world.math1, "localhost:55655")
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")
-
-world.light1 = {
-    name = "light1",
-    state = {
-        color = "red",
-        position = {x = 1.0, y = -0.0},
-    },
-    deras = {
-        robot = "foot-bot",
-        actuators = {
-            {"leds", implementation="default", medium="leds"},
-        },
-        init = function(robot, me)
-            robot.leds.set_single_color(13, me.state.color or "red")
-            return me
-        end,
-    },
-    tocked = "auto"
-}
-tartaros.clone("light1", "light2", {state = {color = "green", position = {x = 5.0, y = 5.0}}})
-tartaros.clone("light1", "light3", {state = {color = "blue", position = {x = -5.0, y = 5.0}}})
 
 
 metaworld.charon = {
@@ -520,6 +503,10 @@ metaworld.iason = {
             {"light", id="light_0", position="5.0,-5.0, 2", orientation="0,0,0", color="red", intensity="10.0", medium="leds"},
             {"light", id="light_1", position="5.0, 5.0, 2", orientation="0,0,0", color="green", intensity="10.0", medium="leds"},
             {"light", id="light_2", position="-5.0,5.0, 2", orientation="0,0,0", color="blue", intensity="10.0", medium="leds"},
+        },
+        media = {
+            {"range_and_bearing", id="rab"},
+            {"led", id="leds"}
         }
     }
 }

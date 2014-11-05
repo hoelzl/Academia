@@ -117,7 +117,7 @@ world.math1 = {
         orientation = function() return math.random(0, 360) end
     }
 }
-tartaros.tantalos.mirror(world.math1, "localhost:55655")
+tartaros.tantalos.project(world.math1, "localhost:55655")
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")

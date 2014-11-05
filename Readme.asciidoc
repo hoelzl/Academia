@@ -8,3 +8,75 @@ of their behavior from the intelligent ones via the Hexameter
 protocol.  Therefore we call the Poem agents _teachers_, the Lua
 agents _students_.
 
+
+Installation notes
+==================
+
+You need the following software packages to fully use the Academia scenarios:
+
+1.  LANGUAGES
+(a) Lua 5.1
+    All examples need Lua installed. They may depend on Lua being a 5.1 version. They are tested against Lua 5.1.5.
+    # Install Lua according to [http://www.lua.org/start.html] or with your favorite package manager.
+    # Make sure the `lua` command is available in your standard shell.
+(b) Lisp (SBCL)
+    Examples using HRL need Lisp. They are tested against SBCL 1.1.8.0-19cda10. For further documentation, see the 
+    HRL repository [https://github.com/hoelzl/programmable-reinforcement-learning], which contains most of the Lisp
+    code use din Academia. 
+    # Install SBCL according to [http://sbcl.org/getting.html].
+    # Make sure the `sbcl` command is available in your standard shell.
+(c) Java 1.8
+    Future examples may require Java, however the Java components are experimental as of now. Note that they need
+    a Java of the current 1.8 version.
+    # Install Java
+
+2.  LIBRARIES AND BINDINGS
+(a) 0MQ
+    All examples need the 0MQ (read ZeroMQ) library for network communication. They are tested against version 3.2.3
+    and most definitely depend on 0MQ being a 3.2.X version.
+    # Install 0MQ according to [http://zeromq.org/intro:get-the-software].
+(b) Lua bindings
+    The best way to install these bindings is via luarocks [http://luarocks.org/en/Download]. They are tested against
+    the lua-zmq version listed by luarocks as "scm-1".
+    # Install the _Neopallium_ bindings for Lua according to [http://zeromq.org/bindings:lua].
+    # Optional: Make sure your Lua package.path includes the path luarocks installs in, which should usually be the
+      case by default. For further information, see [http://luarocks.org/en/Using_LuaRocks].
+(c) Lisp bindings
+    There be dragons! Documentation on the Lisp bindings will follow in due time...
+(d) Java bindings
+    These are simple!
+    # Install the Java bindings according to [http://zeromq.org/bindings:java].
+    
+3.  OTHER COMPONENTS
+(a) ARGoS
+    Most examples need ARGoS to be fun! Any ARGoS version 3 should work.
+    # Install ARGoS according to [http://bohr.ulb.ac.be/~pincy/argos/user_manual.php].
+(b) (OPTIONAL) REdit
+    For some examples, it might be helpful if you have access to REdit. This software allows you to generate scenario
+    maps to be used by the simulation. However, as of now you need to "plug them in" by hand.
+    # Install REdit according to [https://github.com/hoelzl/REdit].
+(c) (OPTIONAL) Orpheus & EuryDike 
+    Some examples may interact with these components included in the Pentameter package. They allow you to have an
+    abstract web-interface to control your simulation, however they are not tested against the examples currently
+    in Academia.
+    # Install Pentameter according to [https://github.com/thomasgabor/pentameter].
+
+
+Usage notes
+===========
+
+The main tools you will need in order to use Academia scenarios as of now are called CHARON and IASON. You can find
+them in Sources/Lua/hades/charon.lua and Sources/Lua/argo/iason.lua respectively. They offer a wide variety of options.
+You can learn more about them by calling them with the -h option. For example, call:
+    lua Sources/Lua/hades/charon.lua -h
+    lua Sources/Lua/argo/iason.lua -h
+However, scenarios may provide shortcuts for your convience.
+
+1.  OBSTACLES
+    This is basically a tech demo for the communication infrastructure. It provides its own help!
+    # See Scenario/obstacles/readme.txt
+   
+2.  RESCUE
+    This is the work-in-progress of the actual project goal.  Don't use it without in-depth knowledge about Academia!
+    
+    
