@@ -77,7 +77,19 @@ environment = {
         or parameters.hex
         or iason.hexameter
         or nil,
+    charon =
+        parameters.charon
+        or iason.charon
+        or nil,
+    charonlog =
+        parameters.charonlog
+        or type(parameters.charon) == "table" and parameters.charon.log
+        or iason.charonlog
+        or type(iason.charon) == "table" and iason.charon.log
+        or "/dev/null",
     dryrun = parameters.T or false,
+    startall = parameters.A or false,
+    autoproject = parameters.P or false,
 }
 
 
@@ -573,9 +585,36 @@ if environment.dryrun then
     os.exit()
 end
 
+if environment.autoproject then
+    environment.tartaros = environment.tartaros or {}
+    environment.tartaros.tantalos = environment.tartaros.tantalos or {}
+    environment.tartaros.tantalos.projections = environment.tartaros.tantalos.projections or {}
+    for name,body in pairs(world) do
+        if body.deras and body.deras.robot then
+            environment.tartaros.tantalos.projections[name] = me
+        end
+    end
+end
+
+if environment.startall then
+    io.write("::  Starting CHARON\n")
+    ostools.call("lua",
+        here.."../hades/charon.lua",
+        it,
+        ostools.group("hexameter", environment.hexameter),
+        ostools.group("tartaros", environment.tartaros),
+        ostools.group(nil, environment.charon),
+        "> "..environment.charonlog,
+        "&"
+    )
+end
+
 --ostools.call("cd", there..(environment.stage), ";", "argos3", "-c", "world.argos")
 
-ostools.call("argos3", "-c", there..(environment.stage).."world.argos", "&")
+ostools.call("argos3",
+    "-c", there..(environment.stage).."world.argos",
+    "&"
+)
 
 local anyone = true
 

@@ -105,8 +105,14 @@ function step()
         end
     end
     next = {}
-    if me then        
-        local succ, err = pcall(function() hexameter.respond(4) end)
+    if me then
+        local recvtries = 4
+        if body and body.deras and body.deras.recvtriespertimestep then
+            recvtries = body.deras.recvtriespertimestep
+        elseif metaworld.argonaut.recvtriespertimestep then
+            recvtries = metaworld.argonaut.recvtriespertimestep
+        end
+        local succ, err = pcall(function() hexameter.respond(recvtries) end)
         if not succ then
             io.write("[ROBO] ", robot.id, " A fatal error occured: ", err, "\n")
         end

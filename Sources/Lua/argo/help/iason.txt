@@ -8,7 +8,7 @@ It is meant to work in conjunction with HADES and to allow to run HADES scenario
 TYPICAL EXECUTION:
 
 lua iason.lua worldfile.lua ~/tmp/
-lua charon.lua <world definition file> <temporary stage directory> [<parameters...>]
+lua iason.lua <world definition file> <temporary stage directory> [<parameters...>]
 
 
 
@@ -47,8 +47,23 @@ Specific address for Iason to run on (if left out, one is chosen from the addres
 --hexameter:* [e.g. --hexameter:socketcache 42]
 Set options to be passed on to the Hexameter protocol running on Iason (and Argonaut if used).
 
+--charon:* [e.g. --charon:doomsday 42]
+Set options to be passed on to Charon.
+
+--tartaros:* [e.g. --tartaros:tantalos:projectall localhost:55655]
+Set options to be passed on to Tartaros.
+
 -T
 "Dry run", i.e. do all the staging but don't run anything.
+
+-A
+"start ALL", i.e. Iason tries to start the whole scenario by invoking Charon as well. To do so, it uses the same
+settings for Hexameter and Tartaros as specified for Iason itself.
+
+-P
+"autoproject", to be used in conjunction with "-A": When starting Charon, Iason passes its own address as an argument
+for "--tartaros:tantalos:projections:*", causing HADES to project all sensor/motor actions for robots to Iason (and in
+extent to ARGoS).
 
 
 
@@ -130,6 +145,11 @@ the possibly more complex motor/sensor commands defined by HADES to the sensors 
                 The same as "position", only for the orientation of the robot. NOTE: ARGoS specifies orientation values
                 in z,y,x order, which doesn't matter for table values, but a function returning a numerals will
                 specify the z-value of the orientation first (which is usually what you want).
+            recvtriespertimestep:
+                Specifies the number of recvtries Hexameter.respond should execute in each ARGoS time step for this
+                robot. This number will set the absolute maximum of messages a robot can process per time step as well
+                as the expected average waiting time a robot will waste when there are no pending messages. When not
+                set, defaults to 4 at the moment.
             
 If there is a metaworld table assigned, Iason will try to read a sub-table under the entry "iason", which may contain
 the following entries:
