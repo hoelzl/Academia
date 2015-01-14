@@ -90,6 +90,7 @@ environment = {
     dryrun = parameters.T or false,
     startall = parameters.A or false,
     autoproject = parameters.P or false,
+    automotormirror = parameters.M or false,
 }
 
 
@@ -596,6 +597,17 @@ if environment.autoproject then
     end
 end
 
+if environment.automotormirror then
+    environment.tartaros = environment.tartaros or {}
+    environment.tartaros.tantalos = environment.tartaros.tantalos or {}
+    environment.tartaros.tantalos.motormirrors = environment.tartaros.tantalos.motormirrors or {}
+    for name,body in pairs(world) do
+        if body.deras and body.deras.robot then
+            environment.tartaros.tantalos.motormirrors[name] = me
+        end
+    end
+end
+
 if environment.startall then
     io.write("::  Starting CHARON\n")
     ostools.call("lua",
@@ -604,7 +616,7 @@ if environment.startall then
         ostools.group("hexameter", environment.hexameter),
         ostools.group("tartaros", environment.tartaros),
         ostools.group(nil, environment.charon),
-        "> "..environment.charonlog,
+        not (environment.charonlog == "STDOUT") and "> "..environment.charonlog,
         "&"
     )
 end

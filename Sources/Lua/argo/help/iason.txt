@@ -65,6 +65,11 @@ settings for Hexameter and Tartaros as specified for Iason itself.
 for "--tartaros:tantalos:projections:*", causing HADES to project all sensor/motor actions for robots to Iason (and in
 extent to ARGoS).
 
+-M
+"automotormirror", to be used in conjunction with "-A": When starting Charon, Iason passes its own address as an argument
+for "--tartaros:tantalos:motormirrors:*", causing HADES to mirror all motor actions for robots to Iason (and in
+extent to ARGoS).
+
 
 
 PREREQUISITES:

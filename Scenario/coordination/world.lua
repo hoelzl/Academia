@@ -4,12 +4,6 @@ tartaros.load("sisyphos_graph")
 tartaros.load("tantalos", true)
 local json = require "dkjson"
 
-local makenode = tartaros.sisyphos_graph.makenode
-local removenode = tartaros.sisyphos_graph.removenode
-local makeedge = tartaros.sisyphos_graph.makeedge
-local removeedge = tartaros.sisyphos_graph.removeedge
-local makeobject = tartaros.sisyphos_graph.makeobject
-local makehome = tartaros.sisyphos_graph.makehome
 local getnode = tartaros.sisyphos_graph.getnode
 local getedge = tartaros.sisyphos_graph.getedge
 local getedges = tartaros.sisyphos_graph.getedges
@@ -18,41 +12,23 @@ local allhomes = tartaros.sisyphos_graph.allhomes
 local label = tartaros.sisyphos_graph.label
 local lookup = tartaros.sisyphos_graph.lookup
 
-tartaros.publish("edition", tartaros.sisyphos_graph.edition)
-tartaros.publish("stuff", tartaros.sisyphos_graph.stuff)
-tartaros.publish("makenode", tartaros.sisyphos_graph._makenode)
-tartaros.publish("removenode", tartaros.sisyphos_graph._removenode)
-tartaros.publish("makeedge", tartaros.sisyphos_graph._makeedge)
-tartaros.publish("removeedge", tartaros.sisyphos_graph._removeedge)
-tartaros.publish("makeobject", tartaros.sisyphos_graph._makeedge)
-tartaros.publish("makehome", tartaros.sisyphos_graph._makehome)
-
 --static world setup
 
-if true then
-    --tartaros.sisyphos_graph._process(dofile("./model-01.lua"))
-    local graphfile = assert(io.open("./model-02.json", "r"))
-    tartaros.sisyphos_graph._process(json.decode(graphfile:read("*all")))
-    graphfile:close()
-else
-    makenode(0, 0); label(0, 0, "1")
-    makenode(0, 1); label(0, 1, "2")
-    makenode(1, 0); label(1, 0, "4")
-    makenode(1, 1); label(1, 1, "3")
-
-    makeedge(getnode(0,0), getnode(0,1), 1)
-    makeedge(getnode(0,1), getnode(0,0), 1)
-
-    makeedge(getnode(0,0), getnode(1,0), 1)
-    makeedge(getnode(1,0), getnode(0,0), 1)
-
-    makeedge(getnode(0,1), getnode(1,1), 1)
-    makeedge(getnode(1,1), getnode(0,1), 1)
-
-    makehome(0, 0)
-    makeobject(0, 1, {class="victim", id="v1", reward=1000})
-    makeobject(1, 1, {class="rubble", id="r1"})
+local graphfile = assert(io.open("./model-02.json", "r"))
+local graphdefinition = json.decode(graphfile:read("*all"))
+local function fix(tab)
+    for key,val in pairs(tab) do
+        if type(val) == "table" then
+            fix(val)
+        end
+        if type(val) == "number" then
+            tab[key] = math.floor(val)
+        end
+    end
 end
+fix(graphdefinition)
+tartaros.sisyphos_graph._process(graphdefinition)
+graphfile:close()
 
 
 
@@ -171,24 +147,28 @@ local shout = {
             world[control.name].state.attention = control.content
         else
             for name,body in pairs(world) do
-            --for _,name in pairs(tartaros.sensor(me, "spot")) do
                 if tartaros.can(world[name], listen) then
-                    for i,step in ipairs(control.content) do
-                        world[name].state.attention = world[name].state.attention or {}
-                        table.insert(world[name].state.attention, step)
-                    end
+                    world[name].state.attention = control.content
                 end
-            --end
             end
         end
         return me
     end
 }
 
+local function pickone(set)
+    for key,val in pairs(set) do
+        return val
+    end
+end
+
 local go = {
     type = "go",
     class = "motor",
     run = function(me, world, control)
+        if not control.to then
+            control.to = pickone(pickone(getedges(me.state.position))).to
+        end
         if not (type(control.to) == "table") then
             control.to = lookup(tostring(control.to))
         end
@@ -253,81 +233,22 @@ world.observer = {
     print = function() return "" end
 }
 
-world.pro = {
-    name = "pro",
-    sensors = {},
-    motors = {shout, forget, go, pickup, drop, nop},
-    state = {
-        position = tartaros.sisyphos_graph.gethome(),
-        damage = 0,
-        reward = 0
-    },
-    psyche = function(realm, me)
-        return function(clock, body)
-            hexameter.tell("put", realm, "motors", {{body=body, type="shout", control={content={
-                {class="anchor", x=0, y=0, ontarget="yes", cargo="nil", appeal=9001},
-                {class="motor", type="go", control={to="2"}},
-                {class="release"},
-                {class="anchor", x=0, y=0, ontarget="yes", cargo="v1", appeal=10000},
-                {class="motor", type="drop", control={}},
-                {class="release"},
-                {class="anchor", x=0, y=1, ontarget="no", cargo="nil", appeal=10000},
-                {class="motor", type="pickup", control={id="v1"}},
-                {class="release"},
-            }}}})
-        end
-        --return function(clock, body)
-        --    local action = {}
-        --    if clock == 1 then
-        --        action = {body=body, type="go", control={to=2}}
-        --    elseif clock == 2 then
-        --        action = {body=body, type="pickup", control={id="v1"}}
-        --    elseif clock == 3 then
-        --        action = {body=body, type="go", control={to=1}}
-        --    elseif clock == 4 then
-        --        action = {body=body, type="drop", control={}}
-        --    else
-        --        action = {body=body, type="nop", control={}}
-        --    end
-        --    hexameter.tell("put", realm, "motors", {action})
-        --    --hexameter.tell("put", realm, "motors", {{body=body, class="motor", type="shout", control={content=action}}})
-        --end
-    end,
-    obolos = {
-        psyche = true
-    },
-    print = explain
-}
---world.pro = nil --we really only want to "go pro" for testing purposes
-
 world.platon = {
     name = "platon",
     sensors = {result, spot, guts},
     motors = {shout, nop},
     state = {
-        position = tartaros.sisyphos_graph.gethome(),
+        position = tartaros.sisyphos_graph.getahome(),
     },
     psyche = function(realm, me)
         local ultimateplan = {
-            {type = "nop", control = {}}
+            {type = "nop", control = {}},
+            {type = "go", control = {}}
         }
         return function(clock, body)
-            if clock == 1 then
-                local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
-                local deliberation = hexameter.ask("put", "localhost:55559", "plan", {{body=body, state=feeling, period=clock}})[1] --s/"plan"/"solve"
-                if deliberation then
-                    local actions = deliberation.solution or deliberation.answer or deliberation.ANSWER
-                    if actions == 42 then
-                        actions = ultimateplan
-                    end
-                    local plantext = ""
-                    for _,action in pairs(actions) do
-                        plantext = plantext..(plantext == "" and "" or ", ")..action.type
-                        hexameter.tell("put", realm, "motors", {{body=body, type=action.type, control=action.control}})
-                    end
-                    print("&&  Plan says: "..plantext)
-                end
-            end
+            hexameter.tell("put", realm, "motors", {{body=body, type="shout", control={content=
+                ultimateplan
+            }}})
         end
     end,
     obolos = {
@@ -343,16 +264,32 @@ world.platon = {
 world.math1 = {
     name = "math1",
     sensors = {listen, guts},
-    motors = {shout, forget, pickup, drop, nop, go}, --tartaros.tantalos.combine({go, tartaros.tantalos.proxy(go, "localhost:55659")}, "go")
+    motors = {shout, forget, pickup, drop, nop, go},
     state = {
-        position = tartaros.sisyphos_graph.gethome(),
+        position = tartaros.sisyphos_graph.getahome(),
         damage = 0,
         reward = 0
     },
     time = function(body, world, clock)
         body.state.damage = body.state.damage + 1
     end,
-    psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
+    --psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
+    psyche = function(realm, me)
+        local current = 1
+        return function(clock, body)
+            local newplan = hexameter.ask("qry", realm, "sensors", {{body=body, type="listen"}})[1].value
+            local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
+            if type(newplan) == "table" then
+                if not newplan[current] then
+                    current = 1
+                end
+                if newplan[current] then
+                    hexameter.tell("put", realm, "motors", {{body=body, type=newplan[current].type, control=newplan[current].control}})
+                    current = current + 1
+                end
+            end
+        end
+    end,
     obolos = {
         psyche = true
     },
@@ -369,25 +306,20 @@ world.math1 = {
                 class = "motor",
                 run = function(robot, me, world, control)
                     robot.colored_blob_omnidirectional_camera.enable()
-                    --io.write("[ROBO] axis length: ", robot.wheels.axis_length, "\n")
-                    --io.write("{ROBO} options ")
-                    --for name,value in ipairs(robot.light) do
-                    --    io.write(name, ":", value.value, "@", value.angle)
-                    --end
-                    --io.write("\n")
-                    --print("!!!!!!", #robot.colored_blob_omnidirectional_camera)
-                    for name,value in ipairs(robot.colored_blob_omnidirectional_camera) do
-                        io.write("[ROBO] ", me.name, ": (", value.color.red, ",", value.color.blue, ",", value.color.green, ") @ ", value.angle, "\n")
-                    end
-                    --print("go from", serialize.literal(me.state.position), "to", serialize.literal(control))
+                    --print("go from", serialize.literal(me.state.position), "to", serialize.literal(control.to))
                     if not (type(control.to) == "table") then
                         control.to = lookup(tostring(control.to))
                     end
                     if (type(control.to) == "table") and control.to.x and control.to.y then
                         local target = getnode(control.to)
                         local route = getedge(me.state.position, target)
+                        --print(target and serialize.literal(target) or "NO TARGET", control.to.x, control.to.y)
                         if route then
-                            me.state.togo = {x=target.x - me.state.position.x, y=target.y - me.state.position.y, turned = {x = false, y = false}}
+                            me.state.togo = {
+                                x = metaworld.iason.worldscale * (target.x - me.state.position.x),
+                                y = metaworld.iason.worldscale * (target.y - me.state.position.y),
+                                turned = {x = false, y = false}
+                            }
                             me.state.position = target
                             --print("thus", serialize.literal(me.state.togo))
                         else
@@ -414,7 +346,8 @@ world.math1 = {
                                 return true
                             elseif not (math.abs(me.state.togo[d]) < 0.2) then
                                 local s = (me.state.togo[d] > 0) and 1 or -1 --cannot be zero because of previous condition
-                                robot.wheels.set_velocity(s*standard_velocity*100, s*standard_velocity*100)
+                                local v = s*standard_velocity*100
+                                robot.wheels.set_velocity(v, v)
                                 me.state.togo[d] = me.state.togo[d] - s*(standard_velocity/argos_ticks_per_second) --distance per second / ticks per second = distance per tick
                                 return true
                             end
@@ -461,30 +394,12 @@ world.math1 = {
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")
+tartaros.clone("math1", "math5")
 
 
 metaworld.charon = {
     addresses = "localhost:55555,...,localhost:55565,-localhost:55559",
     doomsday = 30,
-    ferry =
-    {
-        {
-            name = "Platon's Mind",
-            address = "localhost:55559",
-            run = function (worldpath, address)
-                return "sbcl --noinform --end-runtime-options --load "..worldpath.."platonsmindrescue.lisp --non-interactive --end-toplevel-options "..address.." > /dev/null 2> /dev/null"
-            end,
-            setup = function (recycledp, address)
-                --hexameter.tell("put", address, "didaskalos.relearn", {tartaros.sisyphos_graph.produce()})
-                hexameter.tell("put", address, "didaskalos.model", {{model=tartaros.sisyphos_graph.produce()}})
-            end,
-            halt = function (worldpath, address)
-                hexameter.tell("put", address, "charon.halt", {{charon="halting"}})
-                return "echo > /dev/null"
-            end,
-            recycle = true --NOTE: You can only recycle Hexameter components!
-        }
-    },
     avatar = "observer",
     hexameter = {
         socketcache = 10
@@ -495,6 +410,7 @@ metaworld.iason = {
     hexameter = {
         socketcache = 10
     },
+    worldscale = 0.003,
     argos = {
         arena = {
             size = "12,12,12",
