@@ -1,8 +1,18 @@
+here = string.match(arg[0], "^.*/") or "./"
+package.path = here.."../xbt/src/?.lua;"..
+    here.."../xbt/src/?/init.lua;"..
+    package.path
+
 local tartaros = require "tartaros"
 local world, metaworld = tartaros.create()
 tartaros.load("sisyphos_graph")
 tartaros.load("tantalos", true)
+
 local json = require "dkjson"
+local ser = require "serialize"
+local xbt = require "xbt"
+local graph = require "example.graph"
+local nodes = require "example.nodes"
 
 local getnode = tartaros.sisyphos_graph.getnode
 local getedge = tartaros.sisyphos_graph.getedge
@@ -12,25 +22,51 @@ local allhomes = tartaros.sisyphos_graph.allhomes
 local label = tartaros.sisyphos_graph.label
 local lookup = tartaros.sisyphos_graph.lookup
 
+local RNG = math.random
+
+local config = {
+    worldnodes = 15,
+    worldarea = 500,
+    students = 5,
+    victimlocations = {3, 5, 12},
+    victimreward = function (location) return 1000 end,
+    edgedestruction = function (edge) if RNG() < 0.1 then edge.cost = edge.cost * 3 end; return edge end
+}
+
+local function emptytable(t)
+    for k,v in pairs(t) do
+        return false
+    end
+    return true
+end
+
 --static world setup
 
-local graphfile = assert(io.open("./model-02.json", "r"))
-local graphdefinition = json.decode(graphfile:read("*all"))
-local function fix(tab)
-    for key,val in pairs(tab) do
-        if type(val) == "table" then
-            fix(val)
-        end
-        if type(val) == "number" then
-            tab[key] = math.floor(val)
-        end
-    end
+
+local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.2))
+--print("Diameter:        ", graph.diameter(g.nodes))
+--local d,n = graph.maxmin_distance(g.nodes)
+--print("Maxmin distance: ", d, "for node", n)
+--print("Nodes:           ", #g.nodes, "Edges:", #g.edges)
+local t = graph.make_graph_action_table(g)
+--print("Action table size: ", #t)
+
+for _,node in pairs(g.nodes) do
+    node.edges = nil
 end
-fix(graphdefinition)
-tartaros.sisyphos_graph._process(graphdefinition)
-graphfile:close()
 
 
+tartaros.sisyphos_graph._process(g)
+tartaros.sisyphos_graph.labelallby("id")
+tartaros.sisyphos_graph._makehome(lookup(1))
+for i,victimlocationid in ipairs(config.victimlocations) do
+    local victimlocation = lookup(victimlocationid)
+    tartaros.sisyphos_graph.makeobject(victimlocation.x, victimlocation.y, {
+      class = "victim",
+      id = "v"..i,
+      reward = config.victimreward(victimlocation)
+    })
+end
 
 
 
@@ -39,7 +75,7 @@ graphfile:close()
 local function explain(body)
     local explanation = ""
     if body.state.position then
-        explanation = explanation .. "position:  " .. body.state.position.x .. "," .. body.state.position.y .. "\n"
+        explanation = explanation .. "position:  " .. (body.state.position.id or "?") .. " @ " .. body.state.position.x .. "," .. body.state.position.y .. "\n"
     else
         explanation = explanation .. "position:  ?\n"
     end
@@ -47,6 +83,7 @@ local function explain(body)
     explanation = explanation.."      damage:    "..(body.state.damage or 0).."\n"
     explanation = explanation.."      reward:    "..(body.state.reward or 0).."\n"
     explanation = explanation.."      cargo:     "..(body.state.carriage and body.state.carriage.id or "<none>").."\n"
+    explanation = explanation.."      last act:  "..(body.state.lastaction and body.state.lastaction.type or "<none>").."\n"
     return explanation
 end
 
@@ -60,8 +97,8 @@ local result = {
         local damages = 0
         local rewards = 0
         for name,body in pairs(world) do
-            damages = damages + (body.state.damage or 0)
-            rewards = rewards + (body.state.reward or 0)
+            damages = damages + (body.state.damage or 0) + (body.state.currentdamage or 0)
+            rewards = rewards + (body.state.reward or 0) + (body.state.currentreward or 0)
         end
         return {damages=damages, rewards=rewards, success=rewards-damages, age=me.state.age or "??"}
     end
@@ -121,6 +158,7 @@ local forget = {
     type = "forget",
     class = "motor",
     run = function(me, _, control)
+        me.state.lastaction = {type="forget", control=control}
         me.state.plan = nil
         return me
     end
@@ -130,6 +168,7 @@ local nop = {
     type = "nop",
     class = "motor",
     run = function (me, world, control)
+        me.state.lastaction = {type="nop", control=control}
         me.state.damage = (me.state.damage or 0) + (me.state.position.cost or 0)
         return me
     end
@@ -139,12 +178,13 @@ local teach = {
     type = "teach",
     class = "motor",
     run = function(me, world, control)
+        me.state.lastaction = {type="teach", control=control}
         if not control or not control.plan then
             return me
         end
         for name,body in pairs(world) do
             if not control.name or (name == control.name) then -- if name is given, only apply to that body
-                if (body.state.position.x == me.state.position.x) and (body.state.position.y == me.state.position.y) then -- only teach to agent on the same node
+                if body.state.position and (body.state.position.x == me.state.position.x) and (body.state.position.y == me.state.position.y) then -- only teach to agent on the same node
                     if tartaros.can(world[name], listen) then -- only teach to agents who can listen
                         world[name].state.plan = control.plan
                         world[name].state.planner = me.name
@@ -167,6 +207,7 @@ local go = {
     type = "go",
     class = "motor",
     run = function(me, world, control)
+        me.state.lastaction = {type="go", control=control}
         if not control.to then
             for x,rest in pairs(getedges(me.state.position)) do
                 for y,edge in pairs(rest) do
@@ -177,7 +218,7 @@ local go = {
             end
         end
         if not (type(control.to) == "table") then
-            control.to = lookup(tostring(control.to))
+            control.to = lookup(control.to)
         end
         if (type(control.to) == "table") and control.to.x and control.to.y then
             local target = getnode(control.to)
@@ -206,6 +247,7 @@ local pickup = { --TODO: cost of living applies here, too (and possibly for othe
     type = "pickup",
     class = "motor",
     run = function(me, world, control)
+        me.state.lastaction = {type="pickup", control=control}
         if not me.state.carriage then
             if control.id then
                if getnode(me.state.position).objects[control.id] then
@@ -214,7 +256,7 @@ local pickup = { --TODO: cost of living applies here, too (and possibly for othe
                    return me
                 end
             elseif control.class then
-                for id,object in getnode(me.state.position).objects do
+                for id,object in pairs(getnode(me.state.position).objects) do
                     if object.class == control.class then
                         me.state.carriage = object
                         --getnode(me.state.position).objects[object.id] = nil
@@ -222,7 +264,7 @@ local pickup = { --TODO: cost of living applies here, too (and possibly for othe
                     end
                 end
             else
-                for id,object in getnode(me.state.position).objects do
+                for id,object in pairs(getnode(me.state.position).objects) do
                     me.state.carriage = object
                     return me
                 end
@@ -236,14 +278,14 @@ local drop = {
     type = "drop",
     class = "motor",
     run = function(me, world, control)
+        me.state.lastaction = {type="drop", control=control}
         if me.state.carriage then
             me.state.currentreward = (me.state.currentreward or 0) + (me.state.carriage.reward or 0)
-            me.state.position.objects[me.state.carriage.id] = me.state.carriage
             me.state.carriage = nil
             me.state.relationships = me.state.relationships or {}
             table.insert(me.state.relationships, {
                 planner = me.state.planner,
-                damage = me.state.currentdamage
+                damage = me.state.currentdamage,
                 reward = me.state.currentreward,
                 expectedreward = me.state.expectedreward,
                 expecteddamage = me.state.expecteddamage,
@@ -276,14 +318,10 @@ world.platon = {
         position = tartaros.sisyphos_graph.getahome(),
     },
     psyche = function(realm, me)
-        local ultimateplan = {
-            {type = "nop", control = {}},
-            {type = "go", control = {}}
-        }
+        local distances,successors = graph.floyd(g)
+        local navigationtable = {dist=distances, succ=successors}
         return function(clock, body)
-            hexameter.tell("put", realm, "motors", {{body=body, type="shout", control={content=
-                ultimateplan
-            }}})
+            hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable}}})
         end
     end,
     obolos = {
@@ -292,6 +330,11 @@ world.platon = {
     },
     time = function (me, world, clock)
         me.state.age = clock
+        if clock == 1 then
+            for e,edge in ipairs(g.edges) do
+                g.edges[e] = config.edgedestruction(edge)
+            end
+        end
     end,
     print = explain
 }
@@ -306,23 +349,48 @@ world.math1 = {
         reward = 0
     },
     time = function(body, world, clock)
-        me.state.age = clock
-        body.state.currentdamage = body.state.currentdamage + 1
+        body.state.age = clock
+        body.state.currentdamage = (body.state.currentdamage or 0) + 1
     end,
     --psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
     psyche = function(realm, me)
-        local current = 1
+        local carrying = false
         return function(clock, body)
-            local newplan = hexameter.ask("qry", realm, "sensors", {{body=body, type="listen"}})[1].value
-            local feeling = hexameter.ask("qry", realm, "sensors", {{body=body, type="guts"}})[1].value
-            if type(newplan) == "table" then
-                if not newplan[current] then
-                    current = 1
+            local location = hexameter.ask("qry", realm, "sensors", {{body=body, type="look"}})[1].value
+            local plan = hexameter.ask("qry", realm, "sensors", {{body=body, type="listen"}})[1].value
+            if not carrying and location.objects and not emptytable(location.objects) then
+                hexameter.tell("put", realm, "motors", {{body=body, type="pickup"}})
+                carrying = true
+            elseif carrying and (ishome(location.x, location.y) == "yes") then
+                hexameter.tell("put", realm, "motors", {{body=body, type="drop"}})
+                carrying = false
+            elseif plan then
+                if carrying then
+                    local home = tartaros.sisyphos_graph.getahome()
+                    local succ = plan.succ[location.id][home.id]
+                    hexameter.tell("put", realm, "motors", {{body=body, type="go", control={to=succ}}})
+                else
+                    local besttarget, bestreward
+                    for i,victimlocationid in ipairs(config.victimlocations) do
+                        local victimlocation = lookup(victimlocationid)
+                        for _,victim in pairs(victimlocation.objects) do
+                            --print(ser.literal(location), ser.literal(victimlocation))
+                            local routecost = plan.dist[location.id][victimlocation.id] or 10000000000
+                            --print(ser.literal(plan))                            
+                            local effectivereward = victim.reward - routecost
+                            if effectivereward > (bestreward or -1000000000) then
+                                bestreward = effectivereward
+                                besttarget = victimlocation
+                            end
+                        end
+                    end
+                    if besttarget then
+                        local succ = plan.succ[location.id][besttarget.id]
+                        hexameter.tell("put", realm, "motors", {{body=body, type="go", control={to=succ}}})
+                    end
                 end
-                if newplan[current] then
-                    hexameter.tell("put", realm, "motors", {{body=body, type=newplan[current].type, control=newplan[current].control}})
-                    current = current + 1
-                end
+            else
+                hexameter.tell("put", realm, "motors", {{body=body, type="nop"}})
             end
         end
     end,
@@ -332,7 +400,7 @@ world.math1 = {
     print = explain
 }
 
-for i=2,5 do
+for i=2,config.students do
     tartaros.clone("math1", "math"..i)
 end
 

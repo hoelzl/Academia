@@ -7,3 +7,6 @@
 [submodule "Sources/Lisp/hrl"]
 	path = Sources/Lisp/hrl
 	url = https://github.com/hoelzl/programmable-reinforcement-learning.git
+[submodule "Sources/Lua/xbt"]
+	path = Sources/Lua/xbt
+	url = https://github.com/hoelzl/Xbt.lua
