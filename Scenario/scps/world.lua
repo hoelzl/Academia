@@ -43,8 +43,7 @@ local function explain(body)
     else
         explanation = explanation .. "position:  ?\n"
     end
-    explanation = explanation.."      mood:      "..(body.state.goal or "<none>").."\n"
-    explanation = explanation.."      attention: "..(body.state.attention and "<taught>" or "<clueless>").."\n"
+    explanation = explanation.."      plan:      "..(body.state.plan and "<taught>" or "<clueless>").."\n"
     explanation = explanation.."      damage:    "..(body.state.damage or 0).."\n"
     explanation = explanation.."      reward:    "..(body.state.reward or 0).."\n"
     explanation = explanation.."      cargo:     "..(body.state.carriage and body.state.carriage.id or "<none>").."\n"
@@ -64,29 +63,25 @@ local result = {
             damages = damages + (body.state.damage or 0)
             rewards = rewards + (body.state.reward or 0)
         end
-        for _,home in pairs(allhomes()) do
-            for id,object in pairs(home.objects) do
-                rewards = rewards + (object.reward or 0)
-            end
-        end
         return {damages=damages, rewards=rewards, success=rewards-damages, age=me.state.age or "??"}
     end
 }
 
-local spot = {
-    type = "spot",
+local look = {
+    type = "look",
     class = "sensor",
     measure = function (me, world, control)
-        --local horizon = control.horizon or 10
-        local spotted = {}
-        for name,body in pairs(world) do
-            if not (body == me) then
-                if getedge(me.state.position, body.state.position) then
-                    table.insert(spotted, name)
-                end
-            end
-        end
-        return spotted
+        local location = tartaros.sisyphos_graph.getnode(me.state.position)
+        return location
+    end
+}
+
+local lookout = {
+    type = "lookout",
+    class = "sensor",
+    measure = function (me, world, control)
+        local neighbors = tartaros.sisyphos_graph.getedges(me.state.position)
+        return neighbors
     end
 }
 
@@ -94,26 +89,30 @@ local listen = {
     type = "listen",
     class = "sensor",
     measure = function (me, world, control)
-        return me.state.attention
+        return me.state.plan
     end
 }
 
-local guts = {
-    type = "guts",
+local interview = {
+    type = "interview",
     class = "sensor",
     measure = function (me, world, control)
-        return {
-            goal = me.state.goal or "live",
-            features = {
-                --position = me.state.position,
-                x = me.state.position.x,
-                y = me.state.position.y,
-                ontarget = ishome(me.state.position.x, me.state.position.y),
-                cargo = me.state.carriage and me.state.carriage.id or "nil"
-            }
-        }
+        local memories = {}
+        for name,body in pairs(world) do
+            memories[name] = body.state.log
+        end
+        return memories
     end
 }
+
+local trust = {
+    type = "trust",
+    class = "sensor",
+    measure = function (me, world, control)
+        return me.state.relationships or {}
+    end
+}
+
 
 
 --motor library
@@ -122,7 +121,7 @@ local forget = {
     type = "forget",
     class = "motor",
     run = function(me, _, control)
-        me.state.attention = nil
+        me.state.plan = nil
         return me
     end
 }
@@ -136,19 +135,27 @@ local nop = {
     end
 }
 
-local shout = {
-    type = "shout",
+local teach = {
+    type = "teach",
     class = "motor",
     run = function(me, world, control)
-        if not control or not control.content then
+        if not control or not control.plan then
             return me
         end
-        if control.name and world[control.name] then
-            world[control.name].state.attention = control.content
-        else
-            for name,body in pairs(world) do
-                if tartaros.can(world[name], listen) then
-                    world[name].state.attention = control.content
+        for name,body in pairs(world) do
+            if not control.name or (name == control.name) then -- if name is given, only apply to that body
+                if (body.state.position.x == me.state.position.x) and (body.state.position.y == me.state.position.y) then -- only teach to agent on the same node
+                    if tartaros.can(world[name], listen) then -- only teach to agents who can listen
+                        world[name].state.plan = control.plan
+                        world[name].state.planner = me.name
+                        world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
+                        world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
+                        world[name].state.currentdamage = 0
+                        world[name].state.currentreward = 0
+                        world[name].state.expecteddamage = control.expecteddamage or 0
+                        world[name].state.expectedreward = control.expectedreward or 0
+                        world[name].state.log = {} -- are we sure here?
+                    end
                 end
             end
         end
@@ -156,18 +163,18 @@ local shout = {
     end
 }
 
-local function pickone(set)
-    for key,val in pairs(set) do
-        return val
-    end
-end
-
 local go = {
     type = "go",
     class = "motor",
     run = function(me, world, control)
         if not control.to then
-            control.to = pickone(pickone(getedges(me.state.position))).to
+            for x,rest in pairs(getedges(me.state.position)) do
+                for y,edge in pairs(rest) do
+                    control.to = edge.to
+                    break
+                end
+                break
+            end
         end
         if not (type(control.to) == "table") then
             control.to = lookup(tostring(control.to))
@@ -177,7 +184,18 @@ local go = {
             local route = getedge(me.state.position, target)
             if route then
                 me.state.position = target
-                me.state.damage = (me.state.damage or 0) + (route.cost or 0)
+                me.state.currentdamage = (me.state.currentdamage or 0) + (route.cost or 0)
+                if control.expectedcost then
+                    me.state.log = me.state.log or {}
+                    table.insert(me.state.log, {
+                        action = "go",
+                        planner = me.state.planner,
+                        position = me.state.position,
+                        target = control.to,
+                        expectatedcost = control.expectedcost,
+                        cost = route.cost
+                    })
+                end
             end
         end
         return me
@@ -192,17 +210,21 @@ local pickup = { --TODO: cost of living applies here, too (and possibly for othe
             if control.id then
                if getnode(me.state.position).objects[control.id] then
                    me.state.carriage = getnode(me.state.position).objects[control.id]
-                   getnode(me.state.position).objects[control.id] = nil
+                   --getnode(me.state.position).objects[control.id] = nil
                    return me
                 end
-            end
-            if control.class then
+            elseif control.class then
                 for id,object in getnode(me.state.position).objects do
                     if object.class == control.class then
                         me.state.carriage = object
-                        getnode(me.state.position).objects[object.id] = nil
+                        --getnode(me.state.position).objects[object.id] = nil
                         return me
                     end
+                end
+            else
+                for id,object in getnode(me.state.position).objects do
+                    me.state.carriage = object
+                    return me
                 end
             end
         end
@@ -215,8 +237,21 @@ local drop = {
     class = "motor",
     run = function(me, world, control)
         if me.state.carriage then
+            me.state.currentreward = (me.state.currentreward or 0) + (me.state.carriage.reward or 0)
             me.state.position.objects[me.state.carriage.id] = me.state.carriage
             me.state.carriage = nil
+            me.state.relationships = me.state.relationships or {}
+            table.insert(me.state.relationships, {
+                planner = me.state.planner,
+                damage = me.state.currentdamage
+                reward = me.state.currentreward,
+                expectedreward = me.state.expectedreward,
+                expecteddamage = me.state.expecteddamage,
+            })
+            me.state.damage = (me.state.damage or 0) + (me.state.currentdamage or 0)
+            me.state.reward = (me.state.reward or 0) + (me.state.currentreward or 0)
+            me.state.currentdamage = 0
+            me.state.currentreward = 0
         end
         return me
     end
@@ -235,8 +270,8 @@ world.observer = {
 
 world.platon = {
     name = "platon",
-    sensors = {result, spot, guts},
-    motors = {shout, nop},
+    sensors = {interview, result},
+    motors = {teach, nop},
     state = {
         position = tartaros.sisyphos_graph.getahome(),
     },
@@ -263,15 +298,16 @@ world.platon = {
 
 world.math1 = {
     name = "math1",
-    sensors = {listen, guts},
-    motors = {shout, forget, pickup, drop, nop, go},
+    sensors = {listen, trust, look, lookout},
+    motors = {forget, pickup, drop, nop, go},
     state = {
         position = tartaros.sisyphos_graph.getahome(),
         damage = 0,
         reward = 0
     },
     time = function(body, world, clock)
-        body.state.damage = body.state.damage + 1
+        me.state.age = clock
+        body.state.currentdamage = body.state.currentdamage + 1
     end,
     --psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
     psyche = function(realm, me)
@@ -293,138 +329,20 @@ world.math1 = {
     obolos = {
         psyche = true
     },
-    deras = {
-        robot = "foot-bot",
-        respond = function(robot, body, msgtype, author, space, parameter)
-            if space == "stop" then
-                robot.wheels.set_velocity(0,0)
-            end
-        end,
-        externalmotors = {
-            {
-                type = "go",
-                class = "motor",
-                run = function(robot, me, world, control)
-                    robot.colored_blob_omnidirectional_camera.enable()
-                    --print("go from", serialize.literal(me.state.position), "to", serialize.literal(control.to))
-                    if not (type(control.to) == "table") then
-                        control.to = lookup(tostring(control.to))
-                    end
-                    if (type(control.to) == "table") and control.to.x and control.to.y then
-                        local target = getnode(control.to)
-                        local route = getedge(me.state.position, target)
-                        --print(target and serialize.literal(target) or "NO TARGET", control.to.x, control.to.y)
-                        if route then
-                            me.state.togo = {
-                                x = metaworld.iason.worldscale * (target.x - me.state.position.x),
-                                y = metaworld.iason.worldscale * (target.y - me.state.position.y),
-                                turned = {x = false, y = false}
-                            }
-                            me.state.position = target
-                            --print("thus", serialize.literal(me.state.togo))
-                        else
-                            me.state.togo = {noroute = true}
-                        end
-                    end                    
-                    --robot.wheels.set_velocity(-50, -50)
-                    robot.leds.set_single_color(13, "yellow")
-                    --io.write("[ROBO] go\n")
-                    return me
-                end,
-                update = function(robot, me, world, control)
-                    local standard_velocity = 0.5 -- in m/s
-                    local argos_ticks_per_second = 8 --must be in sync with actual setting, IASON currently defaults to 8 --TODO: allow motor to read this from somewhere
-                    --io.write("[ROBO] update\n")
-                    --io.write("[ROBO] update with ", serialize.literal(me.state.togo), "\n")
-                    for _,dimension in ipairs({{name="x", turnaround=-0.25}, {name="y", turnaround=0.25}}) do
-                        local d = dimension.name
-                        local a = dimension.turnaround
-                        if me.state.togo and not me.state.togo.noroute then
-                            if not me.state.togo.turned[d] then
-                                robot.wheels.set_velocity(a*robot.wheels.axis_length*math.pi*argos_ticks_per_second, -a*robot.wheels.axis_length*math.pi*argos_ticks_per_second)
-                                me.state.togo.turned[d] = true
-                                return true
-                            elseif not (math.abs(me.state.togo[d]) < 0.2) then
-                                local s = (me.state.togo[d] > 0) and 1 or -1 --cannot be zero because of previous condition
-                                local v = s*standard_velocity*100
-                                robot.wheels.set_velocity(v, v)
-                                me.state.togo[d] = me.state.togo[d] - s*(standard_velocity/argos_ticks_per_second) --distance per second / ticks per second = distance per tick
-                                return true
-                            end
-                        end
-                    end
-                end,
-                expect = function(robot, me, world, control)
-                    --io.write("check\n")
-                    if me.state.togo.noroute then
-                        return true
-                    end
-                    if me.state.togo.turned.x and me.state.togo.turned.y and (math.abs(me.state.togo.x) < 0.2) and (math.abs(me.state.togo.y) < 0.2) then
-                        me.state.togo = nil
-                        robot.wheels.set_velocity(0,0)
-                        --io.write("true\n")
-                        return true
-                    end
-                    --io.write("false: ", me.state.togo.x, " ", me.state.togo.y, "\n")
-                    return false
-                end
-            }
-        },
-        actuators = {
-            {"differential_steering", implementation="default"},
-            {"footbot_gripper", implementation="default"},
-            {"footbot_turret", implementation="default"},
-            {"leds", implementation="default", medium="leds"},
-            {"range_and_bearing", implementation="default"}
-        },
-        sensors = {
-            {"colored_blob_omnidirectional_camera", implementation="rot_z_only", medium="leds", show_rays="true"},
-            {"differential_steering", implementation="default"},
-            {"footbot_base_ground", implementation="rot_z_only"},
-            {"footbot_light", implementation="rot_z_only", show_rays="false"},
-            {"footbot_motor_ground", implementation="rot_z_only"},
-            {"footbot_proximity", implementation="default", show_rays="true"},
-            {"footbot_turret_encoder", implementation="default"},
-            {"range_and_bearing", implementation="medium", medium="rab", show_rays="false"}
-        }
-    },
     print = explain
 }
---tartaros.tantalos.motormirror(world.math1, "localhost:55655")
-tartaros.clone("math1", "math2")
-tartaros.clone("math1", "math3")
-tartaros.clone("math1", "math4")
-tartaros.clone("math1", "math5")
+
+for i=2,5 do
+    tartaros.clone("math1", "math"..i)
+end
 
 
 metaworld.charon = {
-    addresses = "localhost:55555,...,localhost:55565,-localhost:55559",
+    addresses = "localhost:55555,...,localhost:55585,-localhost:55559",
     doomsday = 30,
     avatar = "observer",
     hexameter = {
         socketcache = 10
-    }
-}
-
-metaworld.iason = {
-    hexameter = {
-        socketcache = 10
-    },
-    worldscale = 0.003,
-    argos = {
-        arena = {
-            size = "12,12,12",
-            center = "0,0,0",
-            positional_grid_size = "10,10,10",
-            {"floor", id="floor", source="loop_functions", pixels_per_meter="100"},
-            {"light", id="light_0", position="5.0,-5.0, 2", orientation="0,0,0", color="red", intensity="10.0", medium="leds"},
-            {"light", id="light_1", position="5.0, 5.0, 2", orientation="0,0,0", color="green", intensity="10.0", medium="leds"},
-            {"light", id="light_2", position="-5.0,5.0, 2", orientation="0,0,0", color="blue", intensity="10.0", medium="leds"},
-        },
-        media = {
-            {"range_and_bearing", id="rab"},
-            {"led", id="leds"}
-        }
     }
 }
 
