@@ -8,7 +8,7 @@ local world, metaworld = tartaros.create()
 tartaros.load("sisyphos_graph")
 tartaros.load("tantalos", true)
 
-local json = require "dkjson"
+local luatools = require "luatools"
 local ser = require "serialize"
 local xbt = require "xbt"
 local graph = require "example.graph"
@@ -28,9 +28,12 @@ local config = {
     worldnodes = 15,
     worldarea = 500,
     students = 5,
+    basetrust = 1,
+    costofliving = 1,
     victimlocations = {3, 5, 12},
     victimreward = function (location) return 1000 end,
-    edgedestruction = function (edge) if RNG() < 0.1 then edge.cost = edge.cost * 3 end; return edge end
+    victimcooldown = function (victim, rescuer) return victim.reward end,
+    edgedestruction = function (edge) if RNG() < 0.1 then edge.cost = edge.cost * 3 end; return edge end,
 }
 
 local function emptytable(t)
@@ -39,6 +42,7 @@ local function emptytable(t)
     end
     return true
 end
+
 
 --static world setup
 
@@ -79,11 +83,20 @@ local function explain(body)
     else
         explanation = explanation .. "position:  ?\n"
     end
-    explanation = explanation.."      plan:      "..(body.state.plan and "<taught>" or "<clueless>").."\n"
+    explanation = explanation.."      plan:      "..(body.state.plan and "<taught by "..(body.state.planner or "?")..">" or "<clueless>").."\n"
     explanation = explanation.."      damage:    "..(body.state.damage or 0).."\n"
     explanation = explanation.."      reward:    "..(body.state.reward or 0).."\n"
-    explanation = explanation.."      cargo:     "..(body.state.carriage and body.state.carriage.id or "<none>").."\n"
+    local carriagestring
+    if body.state.carriage then
+        carriagestring = body.state.carriage.id .. " (lastvisited:" .. (body.state.carriage.lastvisited or "?") .. " reward:" .. (body.state.carriage.reward or "?") .. ")"
+    end
+    explanation = explanation.."      cargo:     "..(body.state.carriage and carriagestring or "<none>").."\n"
     explanation = explanation.."      last act:  "..(body.state.lastaction and body.state.lastaction.type or "<none>").."\n"
+    local truststring
+    for name,trust in pairs(body.state.trust or {}) do
+        truststring = (trustring or "") .. name .. ":" .. trust .. "  "
+    end
+    explanation = explanation.."      trust:     "..(truststring and truststring or "<none>").."\n"
     return explanation
 end
 
@@ -183,18 +196,21 @@ local teach = {
             return me
         end
         for name,body in pairs(world) do
+            body.state.trust = body.state.trust or {}
             if not control.name or (name == control.name) then -- if name is given, only apply to that body
                 if body.state.position and (body.state.position.x == me.state.position.x) and (body.state.position.y == me.state.position.y) then -- only teach to agent on the same node
                     if tartaros.can(world[name], listen) then -- only teach to agents who can listen
-                        world[name].state.plan = control.plan
-                        world[name].state.planner = me.name
-                        world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
-                        world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
-                        world[name].state.currentdamage = 0
-                        world[name].state.currentreward = 0
-                        world[name].state.expecteddamage = control.expecteddamage or 0
-                        world[name].state.expectedreward = control.expectedreward or 0
-                        world[name].state.log = {} -- are we sure here?
+                        if RNG() < (body.state.trust[me.name] or config.basetrust or 1) then -- check teaching success based on trust
+                            world[name].state.plan = control.plan
+                            world[name].state.planner = me.name
+                            world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
+                            world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
+                            world[name].state.currentdamage = 0
+                            world[name].state.currentreward = 0
+                            world[name].state.expecteddamage = control.expecteddamage or 0
+                            world[name].state.expectedreward = control.expectedreward or 0
+                            world[name].state.log = {}
+                        end
                     end
                 end
             end
@@ -249,25 +265,28 @@ local pickup = { --TODO: cost of living applies here, too (and possibly for othe
     run = function(me, world, control)
         me.state.lastaction = {type="pickup", control=control}
         if not me.state.carriage then
+            local victim
             if control.id then
                if getnode(me.state.position).objects[control.id] then
-                   me.state.carriage = getnode(me.state.position).objects[control.id]
-                   --getnode(me.state.position).objects[control.id] = nil
-                   return me
+                   victim = getnode(me.state.position).objects[control.id]
                 end
             elseif control.class then
                 for id,object in pairs(getnode(me.state.position).objects) do
                     if object.class == control.class then
-                        me.state.carriage = object
-                        --getnode(me.state.position).objects[object.id] = nil
-                        return me
+                        victim = object
+                        break
                     end
                 end
             else
                 for id,object in pairs(getnode(me.state.position).objects) do
-                    me.state.carriage = object
-                    return me
+                    victim = object
+                    break
                 end
+            end
+            if victim then
+                me.state.carriage = luatools.deepcopy(victim)
+                me.state.carriage.reward = config.victimcooldown(me.state.carriage, me)
+                victim.lastvisited = me.state.age
             end
         end
         return me
@@ -290,6 +309,8 @@ local drop = {
                 expectedreward = me.state.expectedreward,
                 expecteddamage = me.state.expecteddamage,
             })
+            me.state.trust = me.state.trust or {}
+            me.state.trust[me.state.planner] = ((me.state.currentreward+1)/(me.state.expectedreward+1) + 1 - (me.state.currentdamage+1)/(me.state.expecteddamage+1)) * (me.state.trust[me.state.planner] or config.basetrust)
             me.state.damage = (me.state.damage or 0) + (me.state.currentdamage or 0)
             me.state.reward = (me.state.reward or 0) + (me.state.currentreward or 0)
             me.state.currentdamage = 0
@@ -321,7 +342,8 @@ world.platon = {
         local distances,successors = graph.floyd(g)
         local navigationtable = {dist=distances, succ=successors}
         return function(clock, body)
-            hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable}}})
+            --TODO: compute expectations!
+            hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable, expectedreward=1000, expecteddamage=50}}})
         end
     end,
     obolos = {
@@ -350,7 +372,7 @@ world.math1 = {
     },
     time = function(body, world, clock)
         body.state.age = clock
-        body.state.currentdamage = (body.state.currentdamage or 0) + 1
+        body.state.currentdamage = (body.state.currentdamage or 0) + (config.costofliving or 0)
     end,
     --psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
     psyche = function(realm, me)
