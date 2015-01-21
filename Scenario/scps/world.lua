@@ -29,6 +29,7 @@ local config = {
     worldarea = 500,
     students = 5,
     basetrust = 1,
+    refractoryperiod = 1,
     costofliving = 1,
     victimlocations = {3, 5, 12},
     victimreward = function (location) return 1000 end,
@@ -83,7 +84,7 @@ local function explain(body)
     else
         explanation = explanation .. "position:  ?\n"
     end
-    explanation = explanation.."      plan:      "..(body.state.plan and "<taught by "..(body.state.planner or "?")..">" or "<clueless>").."\n"
+    explanation = explanation.."      plan:      "..(body.state.plan and "<taught by "..(body.state.planner or "?").." during "..(body.state.lasttaught or "?")..">" or "<clueless>").."\n"
     explanation = explanation.."      damage:    "..(body.state.damage or 0).."\n"
     explanation = explanation.."      reward:    "..(body.state.reward or 0).."\n"
     local carriagestring
@@ -94,7 +95,7 @@ local function explain(body)
     explanation = explanation.."      last act:  "..(body.state.lastaction and body.state.lastaction.type or "<none>").."\n"
     local truststring
     for name,trust in pairs(body.state.trust or {}) do
-        truststring = (trustring or "") .. name .. ":" .. trust .. "  "
+        truststring = (truststring or "") .. name .. ":" .. trust .. "  "
     end
     explanation = explanation.."      trust:     "..(truststring and truststring or "<none>").."\n"
     return explanation
@@ -195,21 +196,25 @@ local teach = {
         if not control or not control.plan then
             return me
         end
+        local taught = false
         for name,body in pairs(world) do
             body.state.trust = body.state.trust or {}
             if not control.name or (name == control.name) then -- if name is given, only apply to that body
                 if body.state.position and (body.state.position.x == me.state.position.x) and (body.state.position.y == me.state.position.y) then -- only teach to agent on the same node
-                    if tartaros.can(world[name], listen) then -- only teach to agents who can listen
-                        if RNG() < (body.state.trust[me.name] or config.basetrust or 1) then -- check teaching success based on trust
-                            world[name].state.plan = control.plan
-                            world[name].state.planner = me.name
-                            world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
-                            world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
-                            world[name].state.currentdamage = 0
-                            world[name].state.currentreward = 0
-                            world[name].state.expecteddamage = control.expecteddamage or 0
-                            world[name].state.expectedreward = control.expectedreward or 0
-                            world[name].state.log = {}
+                    if (body.state.lasttaught or -100) + config.refractoryperiod <= body.state.age then
+                        if tartaros.can(world[name], listen) then -- only teach to agents who can listen
+                            if RNG() < (body.state.trust[me.name] or config.basetrust or 1) then -- check teaching success based on trust
+                                world[name].state.plan = control.plan
+                                world[name].state.planner = me.name
+                                world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
+                                world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
+                                world[name].state.currentdamage = 0
+                                world[name].state.currentreward = 0
+                                world[name].state.expecteddamage = control.expecteddamage or 0
+                                world[name].state.expectedreward = control.expectedreward or 0
+                                world[name].state.log = {}
+                                world[name].state.lasttaught = world[name].state.age
+                            end
                         end
                     end
                 end
@@ -328,7 +333,14 @@ world.observer = {
     sensors = {},
     motors = {},
     state = {},
-    print = function() return "" end
+    time = function (me, world, clock)
+        if clock == 1 then
+            for e,edge in ipairs(g.edges) do
+                g.edges[e] = config.edgedestruction(edge)
+            end
+        end
+    end,
+    print = function() return "" end    
 }
 
 world.platon = {
@@ -352,11 +364,29 @@ world.platon = {
     },
     time = function (me, world, clock)
         me.state.age = clock
-        if clock == 1 then
-            for e,edge in ipairs(g.edges) do
-                g.edges[e] = config.edgedestruction(edge)
-            end
+    end,
+    print = explain
+}
+
+world.sophistes = {
+    name = "sophistes",
+    sensors = {interview, result},
+    motors = {teach, nop},
+    state = {
+        position = tartaros.sisyphos_graph.getahome(),
+    },
+    psyche = function(realm, me)
+        local distances,successors = graph.floyd(g)
+        local navigationtable = {dist=distances, succ=successors}
+        return function(clock, body)
+            hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable, expectedreward=100000, expecteddamage=0}}})
         end
+    end,
+    obolos = {
+        psyche = true
+    },
+    time = function (me, world, clock)
+        me.state.age = clock
     end,
     print = explain
 }
