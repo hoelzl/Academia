@@ -53,8 +53,6 @@ local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_s
 --local d,n = graph.maxmin_distance(g.nodes)
 --print("Maxmin distance: ", d, "for node", n)
 --print("Nodes:           ", #g.nodes, "Edges:", #g.edges)
-local t = graph.make_graph_action_table(g)
---print("Action table size: ", #t)
 
 for _,node in pairs(g.nodes) do
     node.edges = nil
@@ -350,11 +348,15 @@ world.platon = {
     state = {
         position = tartaros.sisyphos_graph.getahome(),
     },
-    psyche = function(realm, me)
-        local distances,successors = graph.floyd(g)
-        local navigationtable = {dist=distances, succ=successors}
+    psyche = function(realm, me, body)
+        local myplan = luatools.deepcopy(g)
         return function(clock, body)
             --TODO: compute expectations!
+            local distances, successors, navigationtable
+            if clock == 1 then
+                distances,successors = graph.floyd(myplan)
+                navigationtable = {dist=distances, succ=successors}
+            end
             hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable, expectedreward=1000, expecteddamage=50}}})
         end
     end,
@@ -405,7 +407,7 @@ world.math1 = {
         body.state.currentdamage = (body.state.currentdamage or 0) + (config.costofliving or 0)
     end,
     --psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
-    psyche = function(realm, me)
+    psyche = function(realm, me, body)
         local carrying = false
         return function(clock, body)
             local location = hexameter.ask("qry", realm, "sensors", {{body=body, type="look"}})[1].value
