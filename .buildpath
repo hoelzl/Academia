@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<buildpath>
+	<buildpathentry kind="src" path="Scenario/scps"/>
+	<buildpathentry kind="src" path="Sources/Lua/xbt/src"/>
+	<buildpathentry excluding="hades/|hades/hexameter/|hades/lib/|xbt/src/" kind="src" path="Sources/Lua"/>
+	<buildpathentry excluding="hexameter/|lib/" kind="src" path="Sources/Lua/hades"/>
+	<buildpathentry kind="src" path="Sources/Lua/hades/hexameter"/>
+	<buildpathentry kind="src" path="Sources/Lua/hades/lib"/>
+</buildpath>
