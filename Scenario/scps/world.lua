@@ -11,6 +11,7 @@ tartaros.load("tantalos", true)
 local luatools = require "luatools"
 local ser = require "serialize"
 local xbt = require "xbt"
+local util = require "util"
 local graph = require "example.graph"
 local nodes = require "example.nodes"
 
@@ -393,6 +394,98 @@ world.sophistes = {
     print = explain
 }
 
+
+local function is_carrying_victim (node, path, state)
+  print("Is carrying victim!")
+  return state.carrying
+end
+xbt.define_function_name("is_carrying_victim", is_carrying_victim)
+
+local function is_at_home_node (node, path, state)
+  print("Is at home node!"); io.flush()
+  return ishome(state.location.x, state.location.y) == "yes"
+end
+xbt.define_function_name("is_at_home_node", is_at_home_node)
+
+local function has_located_victim (node, path, state)
+  return state.location.objects and not emptytable(state.location.objects)
+end
+xbt.define_function_name("has_located_victim", has_located_victim)
+
+local function can_pick_up_victim (node, path, state)
+  local res = not state.carrying 
+  return res
+end
+xbt.define_function_name("can_pick_up_victim", can_pick_up_victim)
+
+local function pick_up_victim (node, path, state)
+  hexameter.tell("put", state.realm, "motors", {{body=state.body, type="pickup"}})
+  state.carrying = true
+  return xbt.succeeded(10, 0)
+end
+xbt.define_function_name("pick_up_victim", pick_up_victim)
+
+local function pick_home_location (node, path, state)
+  state.target_node = tartaros.sisyphos_graph.getahome()
+end
+xbt.define_function_name("pick_home_location", pick_home_location)
+
+local function pick_victim_location (node, path, state)
+  local besttarget, bestreward
+  if not state.plan then return xbt.failed(0, "No plan available.") end
+  for i,victimlocationid in ipairs(config.victimlocations) do
+    local victimlocation = lookup(victimlocationid)
+    for _,victim in pairs(victimlocation.objects) do
+      --print(ser.literal(location), ser.literal(victimlocation))
+      local routecost = state.plan.dist[state.location.id][victimlocation.id] or 10000000000
+      --print(ser.literal(plan))                            
+      local effectivereward = victim.reward - routecost
+      if effectivereward > (bestreward or -1000000000) then
+        bestreward = effectivereward
+        besttarget = victimlocation
+      end
+    end
+  end
+  state.target_node = besttarget
+  return xbt.succeeded(0, 0)
+end
+xbt.define_function_name("pick_victim_location", pick_victim_location)
+
+local function drop_off_victim (node, path, state)
+  hexameter.tell("put", state.realm, "motors", {{body=state.body, type="drop"}})
+  state.carrying = false
+  return xbt.succeeded(10, 0)
+end
+xbt.define_function_name("drop_off_victim", drop_off_victim)
+
+local function update_robot_data (node, path, state)
+  print("Update robot data!"); io.flush()
+  state.plan = hexameter.ask("qry", state.realm, "sensors", {{body=state.body, type="listen"}})[1].value
+  return 0
+end
+xbt.define_function_name("update_robot_data", update_robot_data)
+
+local function move_towards_chosen_location (node, path, state)
+  local succ = state.plan.succ[state.location.id][state.target_node.id]
+  hexameter.tell("put", state.realm, "motors", {{body=state.body, type="go", control={to=succ}}})
+  return 0
+end
+xbt.define_function_name("move_towards_chosen_location", move_towards_chosen_location)
+
+local robot_xbt = xbt.choice({
+  xbt.when("is_at_home_node",
+    xbt.seq({
+      xbt.action("update_robot_data"),
+      xbt.when("is_carrying_victim", xbt.fun("drop_off_victim"))})),
+  xbt.when("has_located_victim",
+    xbt.when("can_pick_up_victim", xbt.fun("pick_up_victim"))),
+  xbt.when("is_carrying_victim",
+    xbt.seq({xbt.action("pick_home_location"),
+             xbt.action("move_towards_chosen_location")})),
+  xbt.seq({xbt.fun("pick_victim_location"),
+           xbt.action("move_towards_chosen_location")})
+})
+
 world.math1 = {
     name = "math1",
     sensors = {listen, trust, look, lookout},
@@ -408,10 +501,31 @@ world.math1 = {
     end,
     --psyche = "../../Sources/Lua/mathetesneoteros.lua", --"./mathetes.lua"
     psyche = function(realm, me, body)
-        local carrying = false
+        local xbt_state = xbt.make_state({
+          body=body,
+          carrying=false,
+          cost=0,
+          realm=realm,
+          value=0
+        })
+        local initialized = false
+
         return function(clock, body)
-            local location = hexameter.ask("qry", realm, "sensors", {{body=body, type="look"}})[1].value
-            local plan = hexameter.ask("qry", realm, "sensors", {{body=body, type="listen"}})[1].value
+          if not initialized then
+            hexameter.tell("put", realm, "motors", {{body=body, type="nop"}})
+            initialized = true
+          end
+
+          xbt_state.location = hexameter.ask("qry", realm, "sensors", {{body=body, type="look"}})[1].value
+          local path = util.path.new()
+          print("111111111111111111", ser.literal(robot_xbt), path, ser.literal(xbt_state))
+          io.flush()
+          local result = xbt.tick(robot_xbt, path, xbt_state)
+          xbt_state.cost = xbt_state.cost + result.cost
+          xbt_state.value = xbt_state.value + (result.value or 0)
+          -- Reset the node, but don't clear its data
+          xbt.reset_node(robot_xbt, path, xbt_state, false)
+            --[[--
             if not carrying and location.objects and not emptytable(location.objects) then
                 hexameter.tell("put", realm, "motors", {{body=body, type="pickup"}})
                 carrying = true
@@ -446,6 +560,7 @@ world.math1 = {
             else
                 hexameter.tell("put", realm, "motors", {{body=body, type="nop"}})
             end
+            --]]--
         end
     end,
     obolos = {
