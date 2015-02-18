@@ -87,6 +87,14 @@ environment = {
         or iason.charonlog
         or type(iason.charon) == "table" and iason.charon.log
         or "/dev/null",
+    lua =
+        parameters.lua
+        or parameters.interpreter
+        or "lua",
+    argos =
+        parameters.argos
+        or parameters.simulator
+        or "argos3",
     dryrun = parameters.T or false,
     startall = parameters.A or false,
     autoproject = parameters.P or false,
@@ -610,7 +618,7 @@ end
 
 if environment.startall then
     io.write("::  Starting CHARON\n")
-    ostools.call("lua",
+    ostools.call(environment.lua,
         here.."../hades/charon.lua",
         it,
         ostools.group("hexameter", environment.hexameter),
@@ -623,7 +631,7 @@ end
 
 --ostools.call("cd", there..(environment.stage), ";", "argos3", "-c", "world.argos")
 
-ostools.call("argos3",
+ostools.call(environment.argos,
     "-c", there..(environment.stage).."world.argos",
     "&"
 )

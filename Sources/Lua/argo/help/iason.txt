@@ -44,6 +44,12 @@ both are specified
 --iason
 Specific address for Iason to run on (if left out, one is chosen from the address pool defined by --addresses)
 
+--lua [default: lua]
+Start directly dependent Lua programs (i.e. CHARON) using the given Lua interpreter, e.g. "luajit".
+
+--argos [default: argos3]
+Start teh ARGoS simulator using the given program name or path.
+
 --hexameter:* [e.g. --hexameter:socketcache 42]
 Set options to be passed on to the Hexameter protocol running on Iason (and Argonaut if used).
 
