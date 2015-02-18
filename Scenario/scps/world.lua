@@ -35,7 +35,10 @@ local config = {
     victimlocations = {3, 5, 12},
     victimreward = function (location) return 1000 end,
     victimcooldown = function (victim, rescuer) return victim.reward end,
-    edgedestruction = function (edge) if RNG() < 0.1 then edge.cost = edge.cost * 3 end; return edge end,
+    catastrophy = {0.1, 0.05, 10, true},
+    periodiccatastrophy_check = function (clock) return false end,
+    periodiccatastrophy = {0.1, 0.05, 10, true},
+    failurecost = 10,
 }
 
 local function emptytable(t)
@@ -254,17 +257,28 @@ local go = {
             if route then
                 me.state.position = target
                 me.state.currentdamage = (me.state.currentdamage or 0) + (route.cost or 0)
-                if control.expectedcost then
-                    me.state.log = me.state.log or {}
-                    table.insert(me.state.log, {
+                me.state.log = me.state.log or {}
+                table.insert(me.state.log, {
                         action = "go",
+                        result = "success",
                         planner = me.state.planner,
                         position = me.state.position,
                         target = control.to,
                         expectatedcost = control.expectedcost,
                         cost = route.cost
                     })
-                end
+            else
+              me.state.currentdamage = (me.state.currentdamage or 0) + (config.failurecost or 0)
+              me.state.log = me.state.log or {}
+              table.insert(me.state.log, {
+                action = "go",
+                result = "failure",
+                planner = me.state.planner,
+                position = me.state.position,
+                target = control.to,
+                expectatedcost = control.expectedcost,
+                cost = config.failurecost
+              })
             end
         end
         return me
@@ -342,40 +356,21 @@ world.observer = {
     state = {},
     time = function (me, world, clock)
         if clock == 1 then
-          g = graph.copy_badly(g, config.edgedestruction)
+          g = graph.copy_badly(g, unpack(config.catastrophy))
+          tartaros.sisyphos_graph.delete()
+          tartaros.sisyphos_graph._process(g)
 --            for e,edge in ipairs(g.edges) do
 --                g.edges[e] = config.edgedestruction(edge)
 --            end
+        elseif config.periodiccatastrophy and config.periodiccatastrophy_check
+               and config.periodiccatastrophy_check(clock) then
+          g = graph.copy_badly(g, unpack(config.periodiccatastrophy))
+          tartaros.sisyphos_graph.delete()
+          tartaros.sisyphos_graph._process(g)
         end
     end,
     print = function() return "" end    
 }
-
-
-local function initialize_teachers (state, scenario)
-  local teachers = {}
-  for i,t in ipairs(scenario.teachers) do
-    -- TODO: Fix teacher representation
-    local g = graph.copy_badly(state.graph, t.p_del, t.p_gen, t.err)
-    local movement_rewards, best_moves = graph.floyd(g)
-    local vls = {}
-    for i,vl in ipairs(state.victim_locations) do
-      -- Ensure that we have at least one victim location.
-      if i == 1 or util.rng:sample() > 0 --[[was: 0.3 ]]-- 
-      then
-        vls[#vls+1] = vl
-      end
-    end
-    local actions,to_nodes = graph.make_graph_action_tables(g)
-    teachers[i] = {
-      id=i,
-      graph=g, samples={},
-      home_locations=state.home_locations, victim_locations=vls,
-      movement_rewards=movement_rewards, best_moves=best_moves,
-      actions=actions, to_nodes=to_nodes}
-  end
-  state.teachers = teachers
-end
 
 world.platon = {
     name = "platon",
@@ -385,7 +380,7 @@ world.platon = {
         position = tartaros.sisyphos_graph.getahome(),
     },
     psyche = function(realm, me, body)
-        local myplan = luatools.deepcopy(g)
+        local myplan = graph.copy(g)
         return function(clock, body)
             --TODO: compute expectations!
             local distances, successors, navigationtable
