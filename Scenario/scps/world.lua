@@ -11,8 +11,9 @@ tartaros.load("tantalos", true)
 local luatools = require "luatools"
 local ser = require "serialize"
 local xbt = require "xbt"
-local util = require "util"
-local graph = require "example.graph"
+local util = require "xbt.util"
+local graph = require "xbt.graph"
+local path = require "xbt.path"
 local nodes = require "example.nodes"
 
 local getnode = tartaros.sisyphos_graph.getnode
@@ -67,6 +68,7 @@ local function initialize_graph (config)
       reward = config.victimreward(victimlocation)
     })
   end
+  return g
 end
 
 -- local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.2))
@@ -254,15 +256,18 @@ local go = {
         if (type(control.to) == "table") and control.to.x and control.to.y then
             local target = getnode(control.to)
             local route = getedge(me.state.position, target)
+            local source = me.state.position
+            assert(source)
             if route then
                 me.state.position = target
-                me.state.currentdamage = (me.state.currentdamage or 0) + (route.cost or 0)
+                me.state.currentdamage = (me.state.currentdamage or 0) + (route.cost or 0) - (route.reward or 0)
                 me.state.log = me.state.log or {}
                 table.insert(me.state.log, {
                         action = "go",
                         result = "success",
                         planner = me.state.planner,
                         position = me.state.position,
+                        source = source,
                         target = control.to,
                         expectatedcost = control.expectedcost,
                         cost = route.cost
@@ -275,6 +280,7 @@ local go = {
                 result = "failure",
                 planner = me.state.planner,
                 position = me.state.position,
+                source = source,
                 target = control.to,
                 expectatedcost = control.expectedcost,
                 cost = config.failurecost
@@ -355,7 +361,8 @@ world.observer = {
     motors = {},
     state = {},
     time = function (me, world, clock)
-        if clock == 1 then
+        if false then
+            if clock == 1 then
           g = graph.copy_badly(g, unpack(config.catastrophy))
           tartaros.sisyphos_graph.delete()
           tartaros.sisyphos_graph._process(g)
@@ -368,6 +375,7 @@ world.observer = {
           tartaros.sisyphos_graph.delete()
           tartaros.sisyphos_graph._process(g)
         end
+    end
     end,
     print = function() return "" end    
 }
@@ -385,9 +393,23 @@ world.platon = {
             --TODO: compute expectations!
             local distances, successors, navigationtable
             if clock == 1 then
-                distances,successors = graph.floyd(myplan)
+                distances, successors = graph.floyd(myplan)
+                navigationtable = {dist=distances, succ=successors}
+            else
+                local logs = hexameter.ask("qry", realm, "sensors", {{body=body, type="interview"}})[1].value
+                local samples = {}
+                for student,log in pairs(logs) do
+                    for e,entry in ipairs(log) do
+                        table.insert(samples, {from_id = entry.source.id, to_id = entry.target.id, reward = -entry.cost})
+                    end
+                end
+                local update_ratio = graph.update_edge_rewards(myplan, samples)
+                distances, successors = graph.floyd(myplan)
                 navigationtable = {dist=distances, succ=successors}
             end
+            -- expectedreward = victim.reward for average victim
+            -- expecteddamage = 2 * average distance to victim
+            --TODO: use table victim -> expectedreward
             hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable, expectedreward=1000, expecteddamage=50}}})
         end
     end,
@@ -498,7 +520,7 @@ xbt.define_function_name("update_robot_data", update_robot_data)
 local function move_towards_chosen_location (node, path, state)
   local succ = state.plan.succ[state.location.id][state.target_node.id]
   hexameter.tell("put", state.realm, "motors", {{body=state.body, type="go", control={to=succ}}})
-  return 0
+  return 20
 end
 xbt.define_function_name("move_towards_chosen_location", move_towards_chosen_location)
 
@@ -534,7 +556,7 @@ world.math1 = {
         local xbt_state = xbt.make_state({
           body=body,
           carrying=false,
-          cost=0,
+          reward=0,
           realm=realm,
           value=0
         })
@@ -547,11 +569,11 @@ world.math1 = {
           end
 
           xbt_state.location = hexameter.ask("qry", realm, "sensors", {{body=body, type="look"}})[1].value
-          local path = util.path.new()
+          local path = path.new()
           print("111111111111111111", ser.literal(robot_xbt), path, ser.literal(xbt_state))
           io.flush()
           local result = xbt.tick(robot_xbt, path, xbt_state)
-          xbt_state.cost = xbt_state.cost + result.cost
+          xbt_state.reward = xbt_state.reward + result.reward
           xbt_state.value = xbt_state.value + (result.value or 0)
           -- Reset the node, but don't clear its data
           xbt.reset_node(robot_xbt, path, xbt_state, false)
@@ -606,7 +628,7 @@ end
 
 metaworld.charon = {
     addresses = "localhost:55555,...,localhost:55585,-localhost:55559",
-    doomsday = 30,
+    doomsday = 50,
     avatar = "observer",
     hexameter = {
         socketcache = 10
