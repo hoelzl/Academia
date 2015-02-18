@@ -48,29 +48,37 @@ end
 
 --static world setup
 
+local function initialize_graph (config)
+  local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.2))
+  g = graph.copy_badly(g, 0.6, 0.25, 0)
+  print("Navigation graph has " .. #g.nodes .. " nodes and " .. #g.edges .. " edges.")
 
-local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.2))
---print("Diameter:        ", graph.diameter(g.nodes))
---local d,n = graph.maxmin_distance(g.nodes)
---print("Maxmin distance: ", d, "for node", n)
---print("Nodes:           ", #g.nodes, "Edges:", #g.edges)
-
-for _,node in pairs(g.nodes) do
-    node.edges = nil
-end
-
-
-tartaros.sisyphos_graph._process(g)
-tartaros.sisyphos_graph.labelallby("id")
-tartaros.sisyphos_graph._makehome(lookup(1))
-for i,victimlocationid in ipairs(config.victimlocations) do
+  tartaros.sisyphos_graph._process(g)
+  tartaros.sisyphos_graph.labelallby("id")
+  tartaros.sisyphos_graph._makehome(lookup(1))
+  for i,victimlocationid in ipairs(config.victimlocations) do
     local victimlocation = lookup(victimlocationid)
     tartaros.sisyphos_graph.makeobject(victimlocation.x, victimlocation.y, {
       class = "victim",
       id = "v"..i,
       reward = config.victimreward(victimlocation)
     })
+  end
 end
+
+-- local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.2))
+
+-- g is the graph before the catastrophe happened, i.e., the graph the system designers build based on the
+-- building blueprint.  This graph is passed to the teachers as initial value.
+local g = initialize_graph(config)
+--print("Diameter:        ", graph.diameter(g.nodes))
+--local d,n = graph.maxmin_distance(g.nodes)
+--print("Maxmin distance: ", d, "for node", n)
+--print("Nodes:           ", #g.nodes, "Edges:", #g.edges)
+
+--for _,node in pairs(g.nodes) do
+--    node.edges = nil
+--end
 
 
 
@@ -334,13 +342,40 @@ world.observer = {
     state = {},
     time = function (me, world, clock)
         if clock == 1 then
-            for e,edge in ipairs(g.edges) do
-                g.edges[e] = config.edgedestruction(edge)
-            end
+          g = graph.copy_badly(g, config.edgedestruction)
+--            for e,edge in ipairs(g.edges) do
+--                g.edges[e] = config.edgedestruction(edge)
+--            end
         end
     end,
     print = function() return "" end    
 }
+
+
+local function initialize_teachers (state, scenario)
+  local teachers = {}
+  for i,t in ipairs(scenario.teachers) do
+    -- TODO: Fix teacher representation
+    local g = graph.copy_badly(state.graph, t.p_del, t.p_gen, t.err)
+    local movement_rewards, best_moves = graph.floyd(g)
+    local vls = {}
+    for i,vl in ipairs(state.victim_locations) do
+      -- Ensure that we have at least one victim location.
+      if i == 1 or util.rng:sample() > 0 --[[was: 0.3 ]]-- 
+      then
+        vls[#vls+1] = vl
+      end
+    end
+    local actions,to_nodes = graph.make_graph_action_tables(g)
+    teachers[i] = {
+      id=i,
+      graph=g, samples={},
+      home_locations=state.home_locations, victim_locations=vls,
+      movement_rewards=movement_rewards, best_moves=best_moves,
+      actions=actions, to_nodes=to_nodes}
+  end
+  state.teachers = teachers
+end
 
 world.platon = {
     name = "platon",

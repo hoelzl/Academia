@@ -2,4 +2,4 @@ echo "!!  You can call \`bash runplatonsmind.sh\` before running this script on 
 echo "!!    over multiple runs of this script, which will greatly speed up an ensemble test. CHARON will"
 echo "!!    automatically detect if platonsmind is already running!"
 echo ""
-luajit ../../Sources/Lua/hades/charon.lua ./world.lua --hadeslog hadeslog.txt --psychelog psychelog.txt --hades:note:tocks no
+luajit ../../Sources/Lua/hades/charon.lua ./world.lua --hadeslog hadeslog.txt --psychelog psychelog.txt --hades:note:tocks no --lua luajit
