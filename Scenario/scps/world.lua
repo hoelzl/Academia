@@ -53,8 +53,8 @@ end
 --static world setup
 
 local function initialize_graph (config)
-  local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.2))
-  g = graph.copy_badly(g, 0.6, 0.25, 0)
+  local g = graph.generate_graph(config.worldnodes, config.worldarea, graph.make_short_edge_generator(1.1))
+  g = graph.copy_badly(g, 0.6, 0.25, 0, true)
   print("Navigation graph has " .. #g.nodes .. " nodes and " .. #g.edges .. " edges.")
 
   tartaros.sisyphos_graph._process(g)
@@ -97,8 +97,8 @@ local function explain(body)
         explanation = explanation .. "position:  ?\n"
     end
     explanation = explanation.."      plan:      "..(body.state.plan and "<taught by "..(body.state.planner or "?").." during "..(body.state.lasttaught or "?")..">" or "<clueless>").."\n"
-    explanation = explanation.."      damage:    "..(body.state.damage or 0).."\n"
-    explanation = explanation.."      reward:    "..(body.state.reward or 0).."\n"
+    explanation = explanation.."      damage:    "..(body.state.damage or 0).." + "..(body.state.currentdamage or 0).."\n"
+    explanation = explanation.."      reward:    "..(body.state.reward or 0).." + "..(body.state.currentreward or 0).."\n"
     local carriagestring
     if body.state.carriage then
         carriagestring = body.state.carriage.id .. " (lastvisited:" .. (body.state.carriage.lastvisited or "?") .. " reward:" .. (body.state.carriage.reward or "?") .. ")"
@@ -406,6 +406,7 @@ world.platon = {
                 local update_ratio = graph.update_edge_rewards(myplan, samples)
                 distances, successors = graph.floyd(myplan)
                 navigationtable = {dist=distances, succ=successors}
+                --print(ser.literal(successors))
             end
             -- expectedreward = victim.reward for average victim
             -- expecteddamage = 2 * average distance to victim
@@ -448,13 +449,13 @@ world.sophistes = {
 
 
 local function is_carrying_victim (node, path, state)
-  print("Is carrying victim!")
+  --print("Is carrying victim!")
   return state.carrying
 end
 xbt.define_function_name("is_carrying_victim", is_carrying_victim)
 
 local function is_at_home_node (node, path, state)
-  print("Is at home node!"); io.flush()
+  --print("Is at home node!"); io.flush()
   return ishome(state.location.x, state.location.y) == "yes"
 end
 xbt.define_function_name("is_at_home_node", is_at_home_node)
@@ -488,8 +489,8 @@ local function pick_victim_location (node, path, state)
   for i,victimlocationid in ipairs(config.victimlocations) do
     local victimlocation = lookup(victimlocationid)
     for _,victim in pairs(victimlocation.objects) do
-      --print(ser.literal(location), ser.literal(victimlocation))
-      local routecost = state.plan.dist[state.location.id][victimlocation.id] or 10000000000
+      print(ser.literal(victimlocation))
+      local routecost = -state.plan.dist[state.location.id][victimlocation.id] or 10000000000
       --print(ser.literal(plan))                            
       local effectivereward = victim.reward - routecost
       if effectivereward > (bestreward or -1000000000) then
@@ -511,7 +512,7 @@ end
 xbt.define_function_name("drop_off_victim", drop_off_victim)
 
 local function update_robot_data (node, path, state)
-  print("Update robot data!"); io.flush()
+  --print("Update robot data!"); io.flush()
   state.plan = hexameter.ask("qry", state.realm, "sensors", {{body=state.body, type="listen"}})[1].value
   return 0
 end
@@ -570,8 +571,6 @@ world.math1 = {
 
           xbt_state.location = hexameter.ask("qry", realm, "sensors", {{body=body, type="look"}})[1].value
           local path = path.new()
-          print("111111111111111111", ser.literal(robot_xbt), path, ser.literal(xbt_state))
-          io.flush()
           local result = xbt.tick(robot_xbt, path, xbt_state)
           xbt_state.reward = xbt_state.reward + result.reward
           xbt_state.value = xbt_state.value + (result.value or 0)
@@ -628,7 +627,7 @@ end
 
 metaworld.charon = {
     addresses = "localhost:55555,...,localhost:55585,-localhost:55559",
-    doomsday = 50,
+    doomsday = 30,
     avatar = "observer",
     hexameter = {
         socketcache = 10
