@@ -40,6 +40,8 @@ local config = {
     periodiccatastrophy_check = function (clock) return false end,
     periodiccatastrophy = {0.1, 0.05, 10, true},
     failurecost = 10,
+    damageestimation = function (damage, teacher) return damage * 1.5 end,
+    rewardestimation = function (reward, teacher) return reward end,
 }
 
 local function emptytable(t)
@@ -97,8 +99,8 @@ local function explain(body)
         explanation = explanation .. "position:  ?\n"
     end
     explanation = explanation.."      plan:      "..(body.state.plan and "<taught by "..(body.state.planner or "?").." during "..(body.state.lasttaught or "?")..">" or "<clueless>").."\n"
-    explanation = explanation.."      damage:    "..(body.state.damage or 0).." + "..(body.state.currentdamage or 0).."\n"
-    explanation = explanation.."      reward:    "..(body.state.reward or 0).." + "..(body.state.currentreward or 0).."\n"
+    explanation = explanation.."      damage:    "..(body.state.damage or 0).." + "..(body.state.currentdamage or 0).." (expecting "..(body.state.expecteddamage or "nothing")..")\n"
+    explanation = explanation.."      reward:    "..(body.state.reward or 0).." + "..(body.state.currentreward or 0).." (expecting "..(body.state.expectedreward or "nothing")..")\n"
     local carriagestring
     if body.state.carriage then
         carriagestring = body.state.carriage.id .. " (lastvisited:" .. (body.state.carriage.lastvisited or "?") .. " reward:" .. (body.state.carriage.reward or "?") .. ")"
@@ -213,19 +215,21 @@ local teach = {
             body.state.trust = body.state.trust or {}
             if not control.name or (name == control.name) then -- if name is given, only apply to that body
                 if body.state.position and (body.state.position.x == me.state.position.x) and (body.state.position.y == me.state.position.y) then -- only teach to agent on the same node
-                    if (body.state.lasttaught or -100) + config.refractoryperiod <= body.state.age then
-                        if tartaros.can(world[name], listen) then -- only teach to agents who can listen
-                            if RNG() < (body.state.trust[me.name] or config.basetrust or 1) then -- check teaching success based on trust
-                                world[name].state.plan = control.plan
-                                world[name].state.planner = me.name
-                                world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
-                                world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
-                                world[name].state.currentdamage = 0
-                                world[name].state.currentreward = 0
-                                world[name].state.expecteddamage = control.expecteddamage or 0
-                                world[name].state.expectedreward = control.expectedreward or 0
-                                world[name].state.log = {}
-                                world[name].state.lasttaught = world[name].state.age
+                    if (body.state.lasttaught or -100) + config.refractoryperiod <= body.state.age then -- do not teach during refractory period
+                        if not body.state.carriage then -- do not teach while robot is carrying a victim
+                            if tartaros.can(world[name], listen) then -- only teach to agents who can listen
+                                if RNG() < (body.state.trust[me.name] or config.basetrust or 1) then -- check teaching success based on trust
+                                    world[name].state.plan = control.plan
+                                    world[name].state.planner = me.name
+                                    world[name].state.damage = (world[name].state.damage or 0) + (world[name].state.currentdamage or 0)
+                                    world[name].state.reward = (world[name].state.reward or 0) + (world[name].state.currentreward or 0)
+                                    world[name].state.currentdamage = 0
+                                    world[name].state.currentreward = 0
+                                    world[name].state.expecteddamage = control.expecteddamage or 0
+                                    world[name].state.expectedreward = control.expectedreward or 0
+                                    world[name].state.log = {}
+                                    world[name].state.lasttaught = world[name].state.age
+                                end
                             end
                         end
                     end
@@ -291,7 +295,7 @@ local go = {
     end
 }
 
-local pickup = { --TODO: cost of living applies here, too (and possibly for other "go" as well)
+local pickup = {
     type = "pickup",
     class = "motor",
     run = function(me, world, control)
@@ -342,7 +346,7 @@ local drop = {
                 expecteddamage = me.state.expecteddamage,
             })
             me.state.trust = me.state.trust or {}
-            me.state.trust[me.state.planner] = ((me.state.currentreward+1)/(me.state.expectedreward+1) + 1 - (me.state.currentdamage+1)/(me.state.expecteddamage+1)) * (me.state.trust[me.state.planner] or config.basetrust)
+            me.state.trust[me.state.planner] = ((me.state.currentreward+1)/(me.state.expectedreward+1)) * ((me.state.expecteddamage+1)/(me.state.currentdamage+1)) * (me.state.trust[me.state.planner] or config.basetrust)
             me.state.damage = (me.state.damage or 0) + (me.state.currentdamage or 0)
             me.state.reward = (me.state.reward or 0) + (me.state.currentreward or 0)
             me.state.currentdamage = 0
@@ -408,10 +412,24 @@ world.platon = {
                 navigationtable = {dist=distances, succ=successors}
                 --print(ser.literal(successors))
             end
+            --alternative: 
             -- expectedreward = victim.reward for average victim
             -- expecteddamage = 2 * average distance to victim
-            --TODO: use table victim -> expectedreward
-            hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable, expectedreward=1000, expecteddamage=50}}})
+            local bestroute, bestreward
+            for i,victimlocationid in ipairs(config.victimlocations) do
+              local victimlocation = lookup(victimlocationid)
+              for _,victim in pairs(victimlocation.objects) do
+                local routecost = -distances[1][victimlocation.id] or 10000000000
+                local effectivereward = victim.reward - routecost
+                if effectivereward > (bestreward or -1000000000) then
+                  bestreward = victim.reward
+                  bestroute = routecost
+                end
+              end
+            end
+            bestreward = config.rewardestimation(bestreward, "platon")
+            bestroute = config.damageestimation(bestroute, "platon")
+            hexameter.tell("put", realm, "motors", {{body=body, type="teach", control={plan=navigationtable, expectedreward=bestreward, expecteddamage=bestroute}}})
         end
     end,
     obolos = {
