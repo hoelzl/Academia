@@ -42,45 +42,6 @@ world.math1 = {
     sensors = {proximity},
     motors = {setvelocity},
     state = {},
-    psyche = function(realm, me)
-        local SPEED = 5
-        return function(clock, body)
-            --NOTE: the code of this function is a direct adaptation of the ARGoS example
-            -- Search for the reading with the highest value
-        	value = -1 -- highest value found so far
-        	idx = -1   -- index of the highest value
-            local prox = hexameter.ask("get", realm, "sensors", {{body=body, type="proximity"}})[1].value
-        	for i=1,24 do
-        		if value < prox[i].value then
-        			idx = i
-        			value = prox[i].value
-        		end
-            end
-        	-- At this point, 'value' contains the highest proximity reading found
-         	-- and 'idx' contains the index of that sensor
-        	if value == 0 then
-        		-- The robot has no obstacles around, just go straight
-        		--robot.wheels.set_velocity(SPEED, SPEED)
-                hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=SPEED, right=SPEED}}})
-        	else
-        		-- The robot has obstacles, set wheels according to 'idx'
-        		if idx <= 12 then
-        			-- The closest obstacle is between 0 and 180 degrees: soft turn towards the right
-        			--robot.wheels.set_velocity(SPEED, (idx-1) * SPEED / 11)
-                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=SPEED, right=math.ceil((idx-1) * SPEED / 11)}}})
-                    
-        		else
-        			-- The closest obstacle is between 180 and 360 degrees: soft turn towards the left
-        			--robot.wheels.set_velocity((24-idx) * SPEED / 11, SPEED)
-                    hexameter.tell("put", realm, "motors", {{body=body, type="setvelocity", control={left=math.ceil((24-idx) * SPEED / 11), right=SPEED}}})
-                    
-        		end
-        	end
-        end
-    end,
-    obolos = {
-        --psyche = true,
-    },
     deras = {
         robot = "foot-bot",
         externalmotors = {
@@ -117,7 +78,12 @@ world.math1 = {
         orientation = function() return math.random(0, 360) end
     }
 }
+
+--this call causes HADES to replace the agent's sensors and motor with proxies to ARGoS sensors and motors respectively
+--Note that IASON needs to run on port "localhost:55655" for this to work (it's the default address though)
 tartaros.tantalos.project(world.math1, "localhost:55655")
+
+--generate more robots by cloning the first one
 tartaros.clone("math1", "math2")
 tartaros.clone("math1", "math3")
 tartaros.clone("math1", "math4")
